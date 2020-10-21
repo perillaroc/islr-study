@@ -1,0 +1,162 @@
+---
+title: "线性回归扩展"
+output: html_notebook
+---
+
+```{r}
+library(MASS)
+library(ISLR)
+```
+
+继续研究 Boston 数据集。
+
+## 交互项
+
+`lm()` 支持交互项。
+
+`lstat:black` 将 lstat 和 black 的交互项加入到模型中。
+
+`lstat*age` 将 lstat，age 和交互项 lstat * age 作为预测变量，是 `lstat + age + lstat:age` 的简写
+
+```{r}
+lm.fit.inter <- lm(medv~lstat * age, data=Boston)
+lm.fit.inter
+```
+
+```{r}
+summary(lm.fit.inter)
+```
+
+## 预测变量的非线性变换
+
+`lm()` 函数支持预测变量的非线性变换。
+
+对于预测变量 X，可以使用 `I(X^2)` 创建预测变量 X^2。
+
+建立 medv 对 lstat 和 lstat^2 的回归
+
+```{r}
+lm.fit.power <- lm(medv~lstat + I(lstat^2), data=Boston)
+lm.fit.power
+```
+
+```{r}
+summary(lm.fit.power)
+```
+
+二次项的 p 值接近零，表示它使模型得到改进。
+
+### 验证
+
+使用 `anova()` 函数量化二次拟合在何种程度上优于线性组合。
+
+```{r}
+lm.fit <- lm(medv~lstat, data=Boston)
+summary(lm.fit)
+```
+
+```{r}
+anova(lm.fit, lm.fit.power)
+```
+
+模型 1 是线性模型，模型 2 是包含一次项和二次项的二次模型
+
+`anova()` 通过假设检验比较两个模型。
+
+- 零假设：这两个模型拟合效果相当
+- 备择假设：二次模型效果更优
+
+上述结果中，F 统计量为 135，p 值几乎为 0。表明二次模型远远优于一次模型。
+
+
+### 绘图
+
+```{r}
+par(mfrow=c(2, 2))
+plot(lm.fit.power)
+```
+
+残差中可识别的规律很少
+
+### 多项式拟合
+
+使用 `poly()` 和 `lm()` 可以创建多项式拟合
+
+5 阶多项式拟合
+
+```{r}
+lm.fit.5 <- lm(medv~poly(lstat, 5), data=Boston)
+summary(lm.fit.5)
+```
+
+上述结果表明，5 阶以下的多项式改善了模型的效果。
+
+更高阶模型
+
+```{r}
+lm.fit.8 <- lm(medv~poly(lstat, 8), data=Boston)
+summary(lm.fit.8)
+```
+
+5 阶以上的多项式的 p 值不显著
+
+### 对数变换
+
+```{r}
+lm.fit.log <- lm(medv~log(rm), data=Boston)
+summary(lm.fit.log)
+```
+
+
+## 定性预测变量
+
+研究 Carseats 数据集（汽车座椅）。
+
+```{r}
+head(Carseats)
+```
+
+```{r}
+names(Carseats)
+```
+
+ShelveLoc 是定性变量，表示每个地区搁架位置的质量指标，即在每个地区汽车座椅在商店内的展示空间。
+有三个可能的取值：
+
+- 坏：`Bad`
+- 中等：`Medium`
+- 好：`good`
+
+数据集中已指定 ShelveLoc 为 factor 类型，R 将自动生成虚拟变量。
+
+构建一个包含交互项的多元回归模型
+
+```{r}
+lm.fit.factor <- lm(
+  Sales~.+Income:Advertising + Price:Age, 
+  data=Carseats
+)
+```
+
+
+```{r}
+summary(lm.fit.factor)
+```
+
+`constrasts()` 函数返回 R 虚拟变量的编码
+
+```{r}
+contrasts(Carseats$ShelveLoc)
+```
+
+R 创建两个虚拟变量：
+
+- `ShelveLocGood`：值为 1 时表示 Good
+- `ShelveLocMedium`：值为 1 是表示 Medium
+
+两个变量值均为 0 时，表示 Bad
+
+注意：这两个变量不能同时为 1
+
+回归模型中，`ShelveLocGood` 系数为正，表明好的货架位置与高销售额相关。
+`ShelveLocMedium` 系数为较小的正值，表明中等水平货架位置的销量比坏位置高，但比一个好位置差。

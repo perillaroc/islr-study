@@ -1,0 +1,249 @@
+---
+title: "多元线性回归"
+output: 
+  html_notebook: 
+    fig_width: 12
+    fig_height: 6
+---
+
+```{r}
+library(MASS)
+library(ISLR)
+```
+
+## 拟合
+
+语句 `lm(y ~ x1 + x2)` 建立两个预测变量 `x1`，`x2` 的拟合模型
+
+```{r}
+lm.fit.2 <- lm(medv ~ lstat + age, data=Boston)
+```
+
+`summary()` 函数输出预测变量的回归系数
+
+```{r}
+summary(lm.fit.2)
+```
+
+绘制诊断图
+
+```{r}
+par(mfrow=c(2, 2))
+plot(lm.fit.2)
+```
+
+使用下面的方法对所有的预测变量进行回归
+
+```{r}
+lm.fit.all <- lm(medv~., data=Boston)
+lm.fit.all
+```
+
+```{r}
+summary(lm.fit.all)
+```
+
+```{r}
+par(mfrow=c(2, 2))
+plot(lm.fit.all)
+```
+
+## 预测
+
+选取 5 条记录
+
+```{r}
+record <- Boston[100:105,]
+record["medv"]
+```
+
+计算预测值
+
+```{r}
+predict(lm.fit.2, record)
+```
+
+```{r}
+predict(lm.fit.all, record)
+```
+
+对比两组结果的残差
+
+```{r}
+record["medv"] - predict(lm.fit.2, record)
+```
+
+```{r}
+record["medv"] - predict(lm.fit.all, record)
+```
+
+可以看到，全变量拟合模型的预测结果更接近真实值。
+
+### 预测不确定性
+
+预测有三类不确定性：
+
+- 系数是估计值，可以计算置信区间 (confidence interval) 确定 \hat{y} 与 f(X) 的接近程度。
+- 线性模型是对真实模型的一种假设，即存在模型偏差 (model bias)。
+- 模型中存在随机误差，即不可约误差 (irreducible error)，用预测区间 (prediction interval) 回答 \hat{Y} 与 Y 相差多少的问题。
+
+计算置信区间
+
+```{r}
+predict(
+  lm.fit.all, 
+  record,
+  interval="confidence"
+)
+```
+
+计算预测区间
+
+```{r}
+predict(
+  lm.fit.all, 
+  record,
+  interval="prediction"
+)
+```
+
+## 指标
+
+两个最常见的衡量模型拟合优劣的指标是 RSE 和 R^2（方差的解释比例）
+
+可以使用名字访问 `summary()` 的各个组成部分
+
+### R^2
+
+多元线性回归中
+
+$$
+R^2 = Cor(Y, \hat{Y})^2
+$$
+
+```{r}
+summary(lm.fit.2)$r.sq
+```
+
+```{r}
+summary(lm.fit.all)$r.sq
+```
+
+全变量拟合结果的 R^2 明显大于两个变量的拟合结果。
+
+### RSE
+
+$$
+RSE = \sqrt{\frac{1}{n-p-1}RSS}
+$$
+
+```{r}
+summary(lm.fit.2)$sigma
+```
+
+```{r}
+summary(lm.fit.all)$sigma
+```
+
+## F 统计量
+
+判断响应变量和预测变量之间是否有关系
+
+$$
+F = \frac 
+{(TSS-RSS)/p}
+{RSS/(n-p-1)}
+$$
+
+其中
+
+$$
+TSS = \sum (y_i - \bar{y})^2
+$$
+
+$$
+RSS = \sum(y_i - \hat{y_i})^2
+$$
+
+```{r}
+summary(lm.fit.all)$fstatistic
+```
+
+对于包含 q 个变量的特定子集，F 统计量是
+
+$$
+F = \frac
+{(RSS_0 - RSS)/q}
+{RSS/(n-p-1)}
+$$
+
+其中 RSS_0 是除 q 个变量外建立的拟合模型的残差平方和
+
+```{r}
+summary(lm.fit.2)$fstatistic
+```
+
+当响应变量与预测变量无关时，F 统计量应该接近 1。
+
+根据 F 统计量的 p 值，可以判断预测变量是否与响应变量有关联。
+
+## 共线性
+
+共线性 (collinearity) 是指两个或更多的预测变量高度相关
+
+多重共线性 (multicollinearity) 可以使用方差膨胀因子 (variance inflation factor, VIF) 评估。
+
+VIF 是拟合全模型时的系数 \beta_j 的方差除以单变量回归中 \beta_j 的方差所得的比例。
+
+VIF 的最小可能值是 1，表示完全不存在共线性。
+
+一个经验法则是，VIF 值超过 5 或 10 就表示有共线性问题。
+
+$$
+VIF(\hat{\beta_j}) = \frac {1} {1 - R_{X_j|X_{-j}}^{2}}
+$$
+其中
+
+$$
+R_{X_j|X_{-j}}^{2}
+$$
+
+是 X_j 对所有预测变量回归的 R^2
+
+### 计算
+
+car 包的 `vif()` 函数用于计算方差膨胀因子
+
+```{r}
+library(car)
+```
+
+```{r}
+vif(lm.fit.all)
+```
+
+## 变量选择
+
+variable selection
+
+从拟合结果中可以看到，age 变量有很高的 p 值。
+下面用除 age 之外的所有变量进行回归。
+
+```{r}
+lm.fit1 <- lm(medv~.-age, data=Boston)
+```
+
+```{r}
+summary(lm.fit1)
+```
+
+也可以使用 `update()` 函数
+
+```{r}
+lm.fit1 <- update(lm.fit, ~.-age)
+```
+
+这种方法实际上是后向选择 (backward selection) 方法：
+
+先从包含所有变量的模型开始，删除 p 值最大的变量，即统计学上最不显著的变量。
+使用剩余变量继续拟合模型，重复上述步骤直到满足停止条件。
