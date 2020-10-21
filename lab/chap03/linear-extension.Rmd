@@ -3,14 +3,26 @@ title: "线性回归扩展"
 output: html_notebook
 ---
 
+标准线性回归模型有两个最重要的假设：
+
+- **可加性** (additive)：预测变量 X_j 的变化对响应变量 Y 产生的影响与其他预测变量的取值无关。
+- **线性** (linear)：无论 X_j 取何值，X_j 变化一个单位引起的响应变量 Y 的变化是恒定的。
+
+上述假设在实际问题中常常被违背。
+
+本文介绍一些扩展的线性模型，继续使用 Boston 数据集。
+
 ```{r}
 library(MASS)
 library(ISLR)
 ```
 
-继续研究 Boston 数据集。
 
 ## 交互项
+
+**交互项** (interaction) 去除可加性假设，考虑变量之间的交互作用 (interaction)。
+
+使用两个变量的乘积作为一个交互项。
 
 `lm()` 支持交互项。
 
@@ -27,7 +39,15 @@ lm.fit.inter
 summary(lm.fit.inter)
 ```
 
+**实验分层原则** (hierarchical principle) 规定：
+
+如果模型中含有交互项，那么即使主效应的系数的 p 值不显著，也应包含在模型中。
+
+虽然上述模型中 `age` 的 p 值较大，但 `age` 也应该包含在模型中。
+
 ## 预测变量的非线性变换
+
+一种简单的非线性关系就是 **多项式回归** (polynomial regression)。
 
 `lm()` 函数支持预测变量的非线性变换。
 
@@ -66,8 +86,7 @@ anova(lm.fit, lm.fit.power)
 - 零假设：这两个模型拟合效果相当
 - 备择假设：二次模型效果更优
 
-上述结果中，F 统计量为 135，p 值几乎为 0。表明二次模型远远优于一次模型。
-
+上述结果中，F 统计量为 135，p 值几乎为 0，表明二次模型远远优于一次模型。
 
 ### 绘图
 
@@ -102,11 +121,12 @@ summary(lm.fit.8)
 
 ### 对数变换
 
+`lm()` 也支持其他种类的非线性变换，比如对数变换
+
 ```{r}
 lm.fit.log <- lm(medv~log(rm), data=Boston)
 summary(lm.fit.log)
 ```
-
 
 ## 定性预测变量
 
@@ -120,8 +140,8 @@ head(Carseats)
 names(Carseats)
 ```
 
-ShelveLoc 是定性变量，表示每个地区搁架位置的质量指标，即在每个地区汽车座椅在商店内的展示空间。
-有三个可能的取值：
+ShelveLoc 是定性变量，也称为 **因子** (factor)，表示每个地区搁架位置的质量指标，即在每个地区汽车座椅在商店内的展示空间。
+有三个可能的取值，称为 **水平** (levels)：
 
 - 坏：`Bad`
 - 中等：`Medium`
@@ -149,7 +169,7 @@ summary(lm.fit.factor)
 contrasts(Carseats$ShelveLoc)
 ```
 
-R 创建两个虚拟变量：
+R 创建两个 **哑变量** (dummy variable)：
 
 - `ShelveLocGood`：值为 1 时表示 Good
 - `ShelveLocMedium`：值为 1 是表示 Medium
