@@ -1,0 +1,88 @@
+---
+title: "习题：Auto数据集"
+output: html_notebook
+---
+
+```{r}
+library(ISLR)
+```
+
+
+```{r}
+head(Auto)
+```
+
+```{r}
+attach(Auto)
+```
+
+
+
+# 简单线性回归
+
+mpg (油耗) 是响应变量，horsepower (马力) 是预测变量
+
+## 创建模型
+
+```{r}
+lm_fit = lm(horsepower ~ mpg)
+lm_fit
+```
+
+查看模型
+
+```{r}
+summary(lm_fit)
+```
+
+## 简要分析
+
+预测变量与响应变量之间有关联
+
+Pr 值接近 0，两者有很强的相关性
+
+mpg 的系数为负，两者负相关
+
+## 预测
+
+mpg 为 98 时，计算预测值
+
+```{r}
+predict(lm_fit, data.frame(mpg=c(98)))
+```
+
+计算置信区间
+
+```{r}
+predict(
+  lm_fit,
+  data.frame(mpg=c(98)),
+  interval="confidence"
+)
+```
+
+计算预测空间
+
+```{r}
+predict(
+  lm_fit,
+  data.frame(mpg=c(98)),
+  interval="prediction"
+)
+```
+
+## 关系图
+
+```{r}
+plot(mpg, horsepower)
+abline(lm_fit)
+```
+
+## 诊断图
+
+使用 `plot()` 生成最小二乘回归拟合的诊断图
+
+```{r}
+plot(lm_fit)
+```
+
