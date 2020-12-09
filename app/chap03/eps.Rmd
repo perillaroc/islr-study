@@ -1,0 +1,133 @@
+---
+title: "线性模型的随机误差"
+output: html_notebook
+---
+
+向量 x，eps
+
+```{r}
+set.seed(1)
+x <- rnorm(100, 0, 1)
+eps <- rnorm(100, 0, 0.25)
+```
+
+
+生成向量 y
+
+```{r}
+y <- -1 + 0.25 * x + eps
+```
+
+其中 
+
+- beta_0 = -1
+- beta_1 = 0.25
+
+## 散点图
+
+```{r}
+plot(x, y)
+```
+
+## 线性拟合
+
+```{r}
+lm_fit_v1 <- lm(y ~ x)
+summary(lm_fit_v1)
+```
+
+拟合得到的系数与真实值比较接近
+
+## 拟合线
+
+```{r}
+plot(x, y)
+abline(lm_fit_v1, col="red")
+legend("topleft", inset=.02, legend=c("fit"), col=c("red"), lty=1:2, cex=0.8)
+```
+
+## 多项式拟合
+
+```{r}
+lm_fit_v2 <- lm(y ~ x + I(x^2))
+summary(lm_fit_v2)
+```
+
+虽然残差标准误有所降低，但 x^2 项的 p 值太大，没有显著性。
+
+## 低噪声
+
+```{r}
+set.seed(1)
+x <- rnorm(100)
+eps <- rnorm(100, 0, 0.01)
+y <- -1 + 0.5 * x + eps
+```
+
+
+```{r}
+plot(x, y)
+```
+
+```{r}
+lm_fit_v3 <- lm(y ~ x)
+summary(lm_fit_v3)
+```
+
+```{r}
+plot(x, y)
+abline(lm_fit_v3, col="red")
+legend("topleft", inset=.02, legend=c("fit"), col=c("red"), lty=1:2, cex=0.8)
+```
+
+
+## 高噪声
+
+
+```{r}
+set.seed(1)
+x <- rnorm(100)
+eps <- rnorm(100, 0, 1.0)
+y <- -1 + 0.5 * x + eps
+```
+
+
+```{r}
+plot(x, y)
+```
+
+```{r}
+lm_fit_v4 <- lm(y ~ x)
+summary(lm_fit_v4)
+```
+
+```{r}
+plot(x, y)
+abline(lm_fit_v4, col="red")
+legend("topleft", inset=.02, legend=c("fit"), col=c("red"), lty=1:2, cex=0.8)
+```
+
+
+## 对比
+
+求置信区间
+
+原始数据集
+
+```{r}
+confint(lm_fit_v1)
+```
+
+低噪声数据集
+
+```{r}
+confint(lm_fit_v3)
+```
+
+高噪声数据集
+
+```{r}
+confint(lm_fit_v4)
+```
+
+置信区间随着噪声的增大而增大

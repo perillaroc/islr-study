@@ -86,3 +86,94 @@ abline(lm_fit)
 plot(lm_fit)
 ```
 
+### 残差图
+
+Residuals vs Fitted
+
+图中有明显的规律，残差值与估计值有关，说明线性模型的某些方面可能存在问题。
+
+### 正态 QQ 图
+
+Normal Q-Q
+
+如果满足正态性假设，残差也应该是一个均值为 0 的正态分布，图上的点应该落在呈 45 度角的直线上。
+
+### Scale-Location
+
+与第一幅图类似，显示标准化残差与估计值的关系。
+
+图中有比较明显的趋势，同样说明模型有问题。
+
+### Residuals vs Leverage
+
+杠杆统计量与学生化残差的关系图，用于查看离群点和高杠杆点。
+
+# 多元线性回归
+
+## 散点矩阵图
+
+```{r fig.height=10, fig.width=10}
+plot(Auto[, -c(9)])
+```
+
+## 相关系数矩阵
+
+```{r}
+data.frame(cor(Auto[,-9]))
+```
+
+## 多元线性回归
+
+```{r}
+lm_fit_multi <- lm(mpg~.-name, data=Auto)
+summary(lm_fit_multi)
+```
+
+1. 预测变量和响应变量之间是否有关系？
+
+F 统计量为 252.4，远大于 1，且 F 统计量的 p 值几乎为零。
+说明至少一个预测变量与响应变量有关系。
+
+2. 哪个预测变量与响应变量在统计上具有显著关系？
+
+从预测变量的 p 值看，displacement，weight，year 和 origin 的 p 值较小，与响应变量具有显著关系。
+
+3. year 车龄变量的系数说明什么？
+
+year 的系数为正值，说明随着车龄增长，油耗会增加。
+
+## 诊断图
+
+```{r}
+plot(lm_fit_multi)
+```
+
+1. 残差图是否有异常大的离群点？
+
+有异常点，图中已标明
+
+2. 杠杆图是否识别出了有异常高杠杆作用的点么？
+
+已标明，第 14 个样本
+
+3. Normal Q-Q
+
+残差不按正态分布
+
+## 交互作用
+
+```{r}
+lm_fit_inter <- lm(mpg ~ .-name + cylinders * horsepower, data=Auto)
+summary(lm_fit_inter)
+```
+
+存在统计显著的交互项，不过系数较小。
+
+## 非线性变换
+
+```{r}
+lm_fit_non_linear <- lm(mpg ~ .-name + log(horsepower), data=Auto)
+summary(lm_fit_non_linear)
+```
+
+horsepower 的对数项 p 值几乎为 0，说明部分预测变量与响应变量之间有非线性关系。

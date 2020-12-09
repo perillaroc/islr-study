@@ -1,0 +1,98 @@
+---
+title: "carseats"
+output: html_notebook
+---
+
+```{r}
+library(ISLR)
+```
+
+Carseats 数据集
+
+```{r}
+head(Carseats)
+```
+
+```{r}
+nrow(Carseats)
+```
+
+
+## 多元回归
+
+```{r}
+lm_fit_multi <- lm(
+  Sales ~ Price + Urban + US,
+  data=Carseats
+)
+summary(lm_fit_multi)
+```
+
+## 解释系数
+
+Price 是数值量，与 Sales 呈负相关。
+
+Urban 是定性变量，UrbanYes 表示是 Urban 为 Yes。
+
+US 是定性变量，USYes 表示 US 为 Yes。
+
+## 方程形式
+
+把模型写成方程形式
+
+$$
+\begin{equation}
+\begin{aligned}
+sales &= \beta_0 + \beta_1p + \beta_2x_{i1} + \beta_3x_{i2} \\
+      &= \beta_0 + \beta_1p + 
+      \left\{\begin{matrix}
+       \beta_2 + \beta_3  & \textit{Urban and US} \\ 
+       \beta_2  & \textit{Urban only} \\ 
+       \beta_3  & \textit{US only} \\
+       0 & none
+      \end{matrix}
+      \right.
+\end{aligned}
+\end{equation}
+
+$$
+
+## 零假设
+
+Price 和 USYes 的 p 值几乎为 0，可以拒绝零假设。
+
+## 新模型
+
+UrbanYes 没有显著性，去掉该变量重新拟合模型
+
+```{r}
+lm_fit_multi_new <- lm(
+  Sales ~ Price + US,
+  data=Carseats
+)
+summary(lm_fit_multi_new)
+```
+## 模型拟合效果对比
+
+模型 | Residual standard error | Multiple R-squared | Adjusted R-squared
+-----|-------------------------|--------------------|-------------------
+model 1 | 2.472 | 0.2393 | 0.2335
+model 2 | 2.469 | 0.2393 | 0.2354
+
+model 2 的残差标准误和R方统计量均优于 model 1，但效果改善不是很明显。
+
+## 系数的置信区间
+
+```{r}
+confint(lm_fit_multi_new)
+```
+
+## 诊断图
+
+```{r}
+plot(lm_fit_multi_new)
+```
+
+从残差图可以看到，模型由离群点
+
+从杠杆统计量和学生化残差图中可以看到，有高杠杆点。

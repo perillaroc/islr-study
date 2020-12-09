@@ -1,0 +1,100 @@
+---
+title: "没有截距的简单线性回归"
+output: html_notebook
+---
+
+生成预测变量 x 和响应变量 y
+
+```{r}
+set.seed(1)
+x = rnorm(100)
+y = 2 * x + rnorm(100)
+```
+
+## y 对 x
+
+建立 y 对 x 的不含截距的简单线性回归
+
+```{r}
+lm_fit_y_x <- lm(y ~ x + 0)
+summary(lm_fit_y_x)
+```
+
+## x 对 y
+
+```{r}
+lm_fit_x_y <- lm(x ~ y + 0)
+summary(lm_fit_x_y)
+```
+
+## 对比
+
+模型 | 系数 | 标准差 | t 统计量 | p 值
+-----|------|--------|----------|-----
+y ~ x + 0 | 1.9939 | 0.1065 | 18.73 | < 2.2e-16
+x ~ y + 0 | 0.39111 | 0.02089 | 18.73 | < 2.2e-16
+
+## t 统计量
+
+第一种计算方法
+
+$$
+t = \hat{\beta} / \mathit{SE}(\hat{\beta})
+$$
+
+$$
+\hat{\beta} = (\sum_{i=1}^nx_iy_i) / (\sum_{i'=1}^nx_{i'}^2)
+$$
+
+$$
+\mathit{SE}(\hat{\beta}) = \sqrt{
+  \frac 
+  {\sum_{i=1}^n(y_i - x_i\hat\beta)^2}
+  {(n-1)\sum_{i'=1}^nx_{i'}^2}
+}
+$$
+
+
+```{r}
+beta <- sum(x * y) / sum(x^2)
+beta
+```
+
+```{r}
+se_beta <- sqrt(sum((y - x*beta)^2) / (99 * sum(x^2)))
+se_beta
+```
+
+```{r}
+t1 <- beta / se_beta
+t1
+```
+
+第二种计算方法
+
+$$
+\frac
+{
+  (\sqrt{n-1}) \sum_{i=1}^nx_iy_i
+}
+{
+  \sqrt{
+    (\sum_{i=1}^n x_i^2)(\sum_{i'=1}^ny_i'^2) - (\sum_{i'=1}^2x_{i'}y_{i'})^2
+  }
+}
+$$
+
+```{r}
+(
+  sqrt(99) * sum(x*y) 
+) / (
+  sqrt(
+    sum(x^2) * sum(y^2) - sum(x*y) ^ 2
+  )
+)
+```
+
+两种方法计算结果相同
+
+所以 x 对 y 的 t 统计量和 y 对 x 的 t 统计量是一样的
+

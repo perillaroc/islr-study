@@ -1,0 +1,248 @@
+---
+title: "Boston"
+output: html_notebook
+---
+
+Boston 数据集
+
+```{r}
+library(MASS)
+attach(Boston)
+```
+
+```{r}
+head(Boston)
+```
+
+## 简单线性回归
+
+### zn
+
+```{r}
+lm_fit_zn <- lm(crim ~ zn)
+summary(lm_fit_zn)
+```
+
+### indus
+
+```{r}
+lm_fit_indus <- lm(crim ~ indus)
+summary(lm_fit_indus)
+```
+
+### chas
+
+```{r}
+lm_fit_chas <- lm(crim ~ chas)
+summary(lm_fit_chas)
+```
+
+没有显著性
+
+### nox
+
+```{r}
+lm_fit_nox <- lm(crim ~ nox)
+summary(lm_fit_nox)
+```
+
+### rm
+
+```{r}
+lm_fit_rm <- lm(crim ~ rm)
+summary(lm_fit_rm)
+```
+
+### age
+
+```{r}
+lm_fit_age <- lm(crim ~ age)
+summary(lm_fit_age)
+```
+
+### dis
+
+```{r}
+lm_fit_dis <- lm(crim ~ dis)
+summary(lm_fit_dis)
+```
+
+### rad
+
+```{r}
+lm_fit_rad <- lm(crim ~ rad)
+summary(lm_fit_rad)
+```
+
+### tax
+
+```{r}
+lm_fit_tax <- lm(crim ~ tax)
+summary(lm_fit_tax)
+```
+
+### ptratio
+
+```{r}
+lm_fit_ptratio <- lm(crim ~ ptratio)
+summary(lm_fit_ptratio)
+```
+
+### black
+
+
+```{r}
+lm_fit_black <- lm(crim ~ black)
+summary(lm_fit_black)
+```
+
+### lstat
+
+```{r}
+lm_fit_lstat <- lm(crim ~ lstat)
+summary(lm_fit_lstat)
+```
+
+### medv
+
+```{r}
+lm_fit_medv <- lm(crim ~ medv)
+summary(lm_fit_medv)
+```
+
+## 多元线性回归
+
+```{r}
+lm_fit_multi <- lm(crim~., data=Boston)
+summary(lm_fit_multi)
+```
+
+具有显著性的变量：
+
+- zn
+- dis
+- rad
+- black
+- medv
+
+## 对比系数
+
+```{r}
+col_names <- colnames(Boston)[-1]
+get_coef <- function(name) {
+  coefficients(get(paste("lm_fit_", name, sep="")))[2]
+}
+simple_coefs <- sapply(col_names, get_coef)
+simple_coefs
+```
+
+
+```{r}
+multi_coefs <- coefficients(lm_fit_multi)[-1]
+multi_coefs
+```
+
+```{r}
+plot(simple_coefs, multi_coefs)
+```
+
+对 nox 的估计系数相差很大
+
+
+## 非线性
+
+### zn
+
+```{r}
+lm_fit_poly_zn <- lm(crim ~ poly(zn, 3))
+summary(lm_fit_poly_zn)
+```
+
+### indus
+
+```{r}
+lm_fit_poly_indus <- lm(crim ~ poly(indus, 3))
+summary(lm_fit_poly_indus)
+```
+
+### chas
+
+```{r eval=FALSE, include=FALSE}
+lm_fit_poly_chas <- lm(crim ~ poly(chas, 3))
+summary(lm_fit_poly_chas)
+```
+
+无法执行
+
+### nox
+
+```{r}
+lm_fit_poly_nox <- lm(crim ~ poly(nox, 3))
+summary(lm_fit_poly_nox)
+```
+
+### rm
+
+```{r}
+lm_fit_poly_rm <- lm(crim ~ poly(rm, 3))
+summary(lm_fit_poly_rm)
+```
+
+### age
+
+```{r}
+lm_fit_poly_age <- lm(crim ~ poly(age, 3))
+summary(lm_fit_poly_age)
+```
+
+### dis
+
+```{r}
+lm_fit_poly_dis <- lm(crim ~ poly(dis, 3))
+summary(lm_fit_poly_dis)
+```
+
+### rad
+
+```{r}
+lm_fit_poly_rad <- lm(crim ~ poly(rad, 3))
+summary(lm_fit_poly_rad)
+```
+
+### tax
+
+```{r}
+lm_fit_poly_tax <- lm(crim ~ poly(tax, 3))
+summary(lm_fit_poly_tax)
+```
+
+### ptratio
+
+```{r}
+lm_fit_poly_ptratio <- lm(crim ~ poly(ptratio, 3))
+summary(lm_fit_poly_ptratio)
+```
+
+### black
+
+
+```{r}
+lm_fit_poly_black <- lm(crim ~ poly(black, 3))
+summary(lm_fit_poly_black)
+```
+
+### lstat
+
+```{r}
+lm_fit_poly_lstat <- lm(crim ~ poly(lstat, 3))
+summary(lm_fit_poly_lstat)
+```
+
+### medv
+
+```{r}
+lm_fit_poly_medv <- lm(crim ~ poly(medv, 3))
+summary(lm_fit_poly_medv)
+```
+
+不只一个变量有非线性关系

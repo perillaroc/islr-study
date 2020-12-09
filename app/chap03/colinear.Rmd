@@ -1,0 +1,112 @@
+---
+title: "共线性问题"
+output: html_notebook
+---
+
+创建一组有共线性关系的数据集
+
+```{r}
+set.seed(1)
+x1 <- runif(100)
+x2 <- 0.5 + x1 + rnorm(100) / 10
+y <- 2 + 2 * x1 + 0.3 * x2 + rnorm(100)
+```
+
+
+$$
+y = 2 + 2x_1 + 0.3x_2
+$$
+
+
+## 相关性
+
+```{r}
+cor(x1, x2)
+```
+
+```{r}
+plot(x1, x2)
+```
+
+## 拟合
+
+```{r}
+lm_fit_v1 <- lm(y ~ x1 + x2)
+summary(lm_fit_v1)
+```
+
+预测的 beta_1 和 beta_2 与真实值相差过大
+
+x1 和 x2 系数的 p 值过小，不能拒绝零假设
+
+## 单变量拟合
+
+y 对 x1
+
+```{r}
+lm_fit_x1 <- lm(y ~ x1)
+summary(lm_fit_x1)
+```
+
+p 值几乎为 0，可以拒绝零假设
+
+y 对 x2
+
+
+```{r}
+lm_fit_x2 <- lm(y ~ x2)
+summary(lm_fit_x2)
+```
+
+p 值几乎为 0，可以拒绝零假设
+
+## 错误观测
+
+```{r}
+x1 <- c(x1, 0.1)
+x2 <- c(x2, 0.8)
+y <- c(y, 6)
+```
+
+### 多变量
+
+y 对 x1 和 x2
+
+```{r}
+lm_fit_v2 <- lm(y ~ x1 + x2)
+summary(lm_fit_v2)
+```
+
+```{r}
+plot(lm_fit_v2)
+```
+
+新增观测是离群点，也是高杠杆点
+
+### 单变量
+
+y 对 x1
+
+```{r}
+lm_fit_x1_v2 <- lm(y ~ x1)
+summary(lm_fit_x1_v2)
+```
+
+```{r}
+plot(lm_fit_x1_v2)
+```
+
+新增观测是离群点，也是高杠杆点
+
+y 对 x2
+
+```{r}
+lm_fit_x2_v2 <- lm(y ~ x2)
+summary(lm_fit_x2_v2)
+```
+
+```{r}
+plot(lm_fit_x2_v2)
+```
+
+新增观测是离群点，但不是高杠杆点
