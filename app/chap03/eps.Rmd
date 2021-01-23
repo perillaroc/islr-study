@@ -43,7 +43,14 @@ summary(lm_fit_v1)
 ```{r}
 plot(x, y)
 abline(lm_fit_v1, col="red")
-legend("topleft", inset=.02, legend=c("fit"), col=c("red"), lty=1:2, cex=0.8)
+legend(
+  "topleft", 
+  inset=.02, 
+  legend=c("fit"), 
+  col=c("red"), 
+  lty=1:2,
+  cex=0.8
+)
 ```
 
 ## 多项式拟合
@@ -77,7 +84,14 @@ summary(lm_fit_v3)
 ```{r}
 plot(x, y)
 abline(lm_fit_v3, col="red")
-legend("topleft", inset=.02, legend=c("fit"), col=c("red"), lty=1:2, cex=0.8)
+legend(
+  "topleft", 
+  inset=.02, 
+  legend=c("fit"), 
+  col=c("red"), 
+  lty=1:2, 
+  cex=0.8
+)
 ```
 
 

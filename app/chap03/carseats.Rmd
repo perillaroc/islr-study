@@ -9,7 +9,7 @@ library(ISLR)
 
 Carseats 数据集
 
-```{r}
+```{r paged.print=FALSE}
 head(Carseats)
 ```
 
@@ -93,6 +93,6 @@ confint(lm_fit_multi_new)
 plot(lm_fit_multi_new)
 ```
 
-从残差图可以看到，模型由离群点
+从残差图可以看到，模型有离群点
 
 从杠杆统计量和学生化残差图中可以看到，有高杠杆点。

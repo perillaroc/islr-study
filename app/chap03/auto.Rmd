@@ -8,7 +8,7 @@ library(ISLR)
 ```
 
 
-```{r}
+```{r paged.print=FALSE}
 head(Auto)
 ```
 
@@ -61,7 +61,7 @@ predict(
 )
 ```
 
-计算预测空间
+计算预测区间
 
 ```{r}
 predict(
@@ -118,7 +118,7 @@ plot(Auto[, -c(9)])
 
 ## 相关系数矩阵
 
-```{r}
+```{r paged.print=FALSE}
 data.frame(cor(Auto[,-9]))
 ```
 
@@ -163,7 +163,10 @@ plot(lm_fit_multi)
 ## 交互作用
 
 ```{r}
-lm_fit_inter <- lm(mpg ~ .-name + cylinders * horsepower, data=Auto)
+lm_fit_inter <- lm(
+  mpg ~ .-name + cylinders * horsepower, 
+  data=Auto
+)
 summary(lm_fit_inter)
 ```
 
@@ -172,7 +175,10 @@ summary(lm_fit_inter)
 ## 非线性变换
 
 ```{r}
-lm_fit_non_linear <- lm(mpg ~ .-name + log(horsepower), data=Auto)
+lm_fit_non_linear <- lm(
+  mpg ~ .-name + log(horsepower), 
+  data=Auto
+)
 summary(lm_fit_non_linear)
 ```
 

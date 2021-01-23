@@ -10,7 +10,7 @@ library(MASS)
 attach(Boston)
 ```
 
-```{r}
+```{r paged.print=FALSE}
 head(Boston)
 ```
 
