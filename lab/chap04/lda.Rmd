@@ -1,0 +1,144 @@
+---
+title: "分类：线性判别分析"
+output: html_notebook
+---
+
+```{r}
+library(ISLR)
+```
+
+## 数据
+
+```{r}
+data(Smarket)
+```
+
+```{r paged.print=FALSE}
+head(Smarket)
+```
+
+### 训练集和测试集
+
+训练集：2001 至 2004 年
+
+测试集：2005 年
+
+```{r}
+train <- (Year < 2005)
+```
+
+`train` 是一个布尔变量，Boolean vector
+
+```{r}
+smarket_2005 <- Smarket[!train, ]
+dim(smarket_2005)
+```
+
+
+```{r}
+direction_2005 <- Direction[!train]
+```
+
+## 方法
+
+`MASS` 包的 `lda()` 函数实现线性判别分析
+
+```{r}
+library(MASS)
+```
+
+```{r}
+lda_fit <- lda(
+  Direction ~ Lag1 + Lag2,
+  data=Smarket,
+  subset=train
+)
+lda_fit
+```
+
+`plot()` 函数生成线性判别图像
+
+```{r}
+plot(lda_fit)
+```
+
+## 预测
+
+`predict()` 返回三元列表
+
+- class 存储预测结果
+- posterior 是后验概率
+- x 是线性判别
+
+```{r paged.print=FALSE}
+lda_predict <- predict(
+  lda_fit,
+  smarket_2005
+)
+names(lda_predict)
+```
+
+后验概率
+
+```{r}
+lda_predict$posterior[1:20, ]
+```
+
+预测结果
+
+```{r}
+lda_predict$class[1:20]
+```
+
+线性判据
+
+```{r}
+lda_predict$x[1:20]
+```
+
+列联表
+
+```{r}
+lda_class <- lda_predict$class
+table(lda_class, direction_2005)
+```
+
+```{r}
+mean(lda_class == direction_2005)
+```
+
+class 使用 50% 作为阈值
+
+```{r}
+sum(lda_predict$posterior[,1] >= .5)
+```
+
+```{r}
+sum(lda_predict$posterior[,1] < .5)
+```
+
+使用 90% 作为阈值
+
+```{r}
+sum(lda_predict$posterior[,1] > .9)
+```
+
+## ROC 曲线
+
+```{r}
+library(pROC)
+```
+
+```{r}
+plot(
+  roc(
+    direction_2005,
+    lda_predict$posterior[,2],
+    percent=TRUE
+  ),
+  print.auc=TRUE,
+  plot=TRUE
+)
+```
+
+
