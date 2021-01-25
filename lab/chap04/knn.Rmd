@@ -1,0 +1,270 @@
+---
+title: "K最近邻法"
+output: html_notebook
+---
+
+
+```{r}
+library(ISLR)
+```
+
+## 数据
+
+```{r}
+data(Smarket)
+```
+
+```{r paged.print=FALSE}
+head(Smarket)
+```
+
+### 训练集和测试集
+
+训练集：2001 至 2004 年
+
+测试集：2005 年
+
+```{r}
+train <- (Year < 2005)
+```
+
+构建测试集和训练集
+
+```{r}
+library(class)
+```
+
+```{r}
+train_X <- cbind(Lag1, Lag2)[train,]
+test_X <- cbind(Lag1, Lag2)[!train,]
+train_direction <- Direction[train]
+test_direction <- Direction[!train]
+```
+
+## 方法
+
+`class` 包中的 `knn()` 函数
+
+训练 k=1 的模型
+
+```{r}
+set.seed(1)
+knn_predict <- knn(
+  train_X,
+  test_X,
+  train_direction,
+  k=1
+)
+```
+
+列联表
+
+```{r}
+table(knn_predict, test_direction)
+```
+
+正确率
+
+```{r}
+(83+43)/252
+```
+
+训练 k=3 的模型
+
+```{r}
+set.seed(1)
+knn_predict <- knn(
+  train_X,
+  test_X,
+  train_direction,
+  k=3
+)
+```
+
+列联表
+
+```{r}
+table(knn_predict, test_direction)
+```
+
+正确率
+
+```{r}
+(86+48)/252
+```
+
+## 应用
+
+大篷车保险数据集
+
+### 数据集
+
+```{r}
+attach(Caravan)
+```
+
+```{r}
+dim(Caravan)
+```
+
+```{r}
+summary(Purchase)
+```
+
+```{r}
+348/(5474+348)
+```
+
+只有 6% 的人购买了大篷车保险
+
+### 标准化
+
+`scale()` 函数将每列标准化为均值为 0，方差为 1 的数据
+
+```{r}
+standardized_X = scale(Caravan[,-86])
+```
+
+```{r}
+c(var(Caravan[,1]), var(standardized_X[,1]))
+```
+
+```{r}
+c(var(Caravan[,2]), var(standardized_X[,2]))
+```
+
+### 测试集和训练集
+
+```{r}
+test <- 1:1000
+train_X <- standardized_X[-test,]
+test_X <- standardized_X[test,]
+train_Y <- Purchase[-test]
+test_Y <- Purchase[test]
+```
+
+## 预测
+
+```{r}
+library(class)
+```
+
+
+```{r}
+set.seed(1)
+knn_predict <- knn(
+  train_X,
+  test_X,
+  train_Y,
+  k=1
+)
+```
+
+```{r}
+mean(test_Y != knn_predict)
+```
+
+错误率为 12%
+
+```{r}
+mean(test_Y != "No")
+```
+
+只有 6% 的顾客购买了保险
+
+## 预测阳性率
+
+精确率
+
+真阳性值 / (真阳性值 + 假阳性值)
+
+保险公司更愿意向有购买倾向性的客户销售保险，对总错误率不感兴趣，而对精确率感兴趣
+
+**k=1**
+
+```{r}
+table(knn_predict, test_Y)
+```
+
+```{r}
+9/(68+9)
+```
+
+**k=3**
+
+```{r}
+knn_predict_3 <- knn(
+  train_X,
+  test_X,
+  train_Y,
+  k=3
+)
+table(knn_predict_3, test_Y)
+```
+
+```{r}
+5/(5 + 21)
+```
+
+**k=5**
+
+```{r}
+knn_predict_5 <- knn(
+  train_X,
+  test_X,
+  train_Y,
+  k=5
+)
+table(knn_predict_5, test_Y)
+```
+
+```{r}
+4/(11 + 4)
+```
+
+### 逻辑斯谛回归
+
+```{r}
+glm_fit <- glm(
+  Purchase ~ .,
+  data=Caravan,
+  family=binomial,
+  subset=-test
+)
+```
+
+```{r}
+glm_probs <- predict(
+  glm_fit,
+  Caravan[test,],
+  type="response"
+)
+```
+
+**以 0.5 作为阈值**
+
+```{r}
+glm_predict <- rep("No", 1000)
+glm_predict[glm_probs > .5] = "Yes"
+table(glm_predict, test_Y)
+```
+
+```{r}
+0/(7 + 0)
+```
+
+没有一个预测对
+
+**以 0.25 为阈值**
+
+```{r}
+glm_predict <- rep("No", 1000)
+glm_predict[glm_probs > .25] = "Yes"
+table(glm_predict, test_Y)
+```
+
+```{r}
+11/(22 + 11)
+```
+
+33% 比随机猜想的五倍还多

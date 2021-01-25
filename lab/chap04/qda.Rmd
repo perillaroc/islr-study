@@ -1,0 +1,96 @@
+---
+title: "二次判别分析"
+output: html_notebook
+---
+
+
+```{r}
+library(ISLR)
+```
+
+## 数据
+
+```{r}
+data(Smarket)
+```
+
+```{r paged.print=FALSE}
+head(Smarket)
+```
+
+### 训练集和测试集
+
+训练集：2001 至 2004 年
+
+测试集：2005 年
+
+```{r}
+train <- (Year < 2005)
+```
+
+`train` 是一个布尔变量，Boolean vector
+
+```{r}
+smarket_2005 <- Smarket[!train, ]
+dim(smarket_2005)
+```
+
+
+```{r}
+direction_2005 <- Direction[!train]
+```
+
+## 方法
+
+`MASS` 包的 `qda()` 函数实现二次判别分析
+
+```{r}
+library(MASS)
+```
+
+```{r}
+qda_fit <- qda(
+  Direction ~ Lag1 + Lag2,
+  data=Smarket,
+  subset=train
+)
+qda_fit
+```
+
+## 预测
+
+```{r}
+qda_predict <- predict(
+  qda_fit,
+  smarket_2005
+)
+qda_class <- qda_predict$class
+```
+
+列联表
+
+```{r}
+table(qda_class, direction_2005)
+```
+
+```{r}
+mean(qda_class == direction_2005)
+```
+
+## ROC 曲线
+
+```{r}
+library(pROC)
+```
+
+```{r}
+plot(
+  roc(
+    direction_2005,
+    qda_predict$posterior[,2],
+    percent=TRUE
+  ),
+  print.auc=TRUE,
+  plot=TRUE
+)
+```
