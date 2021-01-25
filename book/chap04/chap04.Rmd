@@ -1,0 +1,329 @@
+---
+title: "分类"
+output: html_notebook
+---
+
+## 分类问题概述
+
+```{r}
+library(ISLR)
+```
+
+```{r}
+head(Default)
+```
+
+```{r}
+sub_default <- Default
+yes_sub_default <- subset(
+  sub_default,
+  default=="Yes"
+)[1:200,]
+no_sub_default <- subset(
+  sub_default,
+  default=="No"
+)[1:500,]
+```
+
+```{r}
+with(
+  yes_sub_default,
+  plot(
+    balance, 
+    income,
+    pch=3,
+    col="orange",
+    xlab="Balance",
+    ylab="Income"
+  )
+)
+
+with(
+  no_sub_default,
+  lines(
+    balance, 
+    income,
+    pch=1,
+    type="p",
+    col="blue"
+  )
+)
+```
+
+箱线图
+
+```{r fig.height=6, fig.width=6}
+par(mfrow=c(1, 2))
+boxplot(
+  balance ~ default,
+  data=Default,
+  col=c("lightblue", "darkred"),
+  xlab="Default",
+  ylab="Balance"
+)
+boxplot(
+  income ~ default,
+  data=Default,
+  col=c("lightblue", "darkred"),
+  xlab="Default",
+  ylab="Income"
+)
+```
+
+## 为什么线性回归不可用
+
+```{r}
+default_v2 <- transform(
+  Default,
+  default=ifelse(default=="Yes", 1, 0)
+)
+head(default_v2)
+```
+
+
+```{r}
+fit <- lm(
+  default ~ balance + income,
+  data=default_v2
+)
+summary(fit)
+```
+
+```{r}
+with(
+  default_v2,
+  plot(
+    balance,
+    default,
+  )
+)
+abline(
+  coef(fit)[1:2],
+  col="blue"
+)
+```
+
+
+```{r}
+glm_fit <- glm(
+  default ~ balance,
+  data=default_v2,
+  family=binomial()
+)
+summary(glm_fit)
+```
+
+```{r}
+with(
+  default_v2,
+  plot(
+    balance,
+    default,
+  )
+)
+
+x <- seq(0, 2700, 100)
+y <- predict(
+  glm_fit,
+  list(balance=x),
+  type="response"
+)
+  
+lines(
+  x,
+  y,
+  col="blue"
+)
+```
+
+
+## 逻辑斯谛回归
+
+### 逻辑斯谛模型
+
+### 估计回归系数
+
+极大似然估计，maximum likelihood
+
+似然函数，likehood funciton
+
+```{r}
+logistic_fit <- glm(
+  default ~ balance,
+  data=Default,
+  family=binomial()
+)
+summary(logistic_fit)
+```
+
+| | 系数 | 标准误 | z 统计量 | p 值 |
+|--|-----|--------|----------|------|
+| Intercept | -10.65 | 0.3612 | -29.49 | <2e-16 | 
+| balance | 0.005499 | 0.0002204 | 24.95 | <2e-16 |
+
+z 统计量绝对值比较大时，说明零假设不成立
+
+### 预测
+
+```{r}
+predict(
+  logistic_fit,
+  list(balance=1000),
+  type="response"
+)
+```
+
+使用哑变量分析定性预测变量
+
+```{r}
+logistic_student_fit <- glm(
+  default ~ student,
+  data=Default,
+  family=binomial()
+)
+summary(logistic_student_fit)
+```
+
+| | 系数 | 标准误 | z 统计量 | p 值 |
+|--|-----|--------|----------|------|
+| Intercept | -3.50413 | 0.07071 | -49.55 | <2e-16 | 
+| student[Yes] | 0.40489 | 0.11502 | 3.52 | 0.000431 |
+
+### 多元逻辑斯谛回归
+
+```{r}
+logistic_multi_fit <- glm(
+  default ~ balance + income + student,
+  data=Default,
+  family=binomial()
+)
+summary(logistic_multi_fit)
+```
+
+| | 系数 | 标准误 | z 统计量 | p 值 |
+|--|-----|--------|----------|------|
+| Intercept | -10.87 | 0.4923 | -22.08 | <2e-16 | 
+| balance | -0.0057 | 0.0002 | 24.738 | <2e-16 | 
+| income | 0.0030 | 0.0082 | 0.370 | 0.7115 | 
+| student[Yes] | -0.6468 | 0.2363 | -2.738 | 0.00619 |
+
+student 哑变量系数为负，与一元回归的结果不同
+
+```{r}
+logistic_multi_fit_v2 <- glm(
+  default ~ balance + student,
+  data=Default,
+  family=binomial()
+)
+summary(logistic_multi_fit_v2)
+```
+
+计算平均违约率
+
+```{r}
+student_set <- subset(
+  Default,
+  student=="Yes"
+)
+none_student_set <- subset(
+  Default,
+  student=="No"
+)
+yes_default_rate <- sum(student_set["default"] == "Yes")/nrow(student_set)
+none_default_rate <- sum(none_student_set["default"] == "Yes")/nrow(none_student_set)
+print(c(yes_default_rate, none_default_rate))
+```
+
+计算违约率与 balance 的关系
+
+```{r}
+x <- seq(0, 2700, 10)
+yes_y <- predict(
+  logistic_multi_fit_v2,
+  list(balance=x, student=rep("Yes", length(x))),
+  type="response"
+)
+
+no_y <- predict(
+  logistic_multi_fit_v2,
+  list(balance=x, student=rep("No", length(x))),
+  type="response"
+)
+```
+
+绘图
+
+```{r fig.height=6, fig.width=6}
+plot(
+  x,
+  yes_y,
+  col="orange",
+  type="l"
+)
+lines(
+  x,
+  no_y,
+  col="blue",
+  type="l"
+)
+abline(
+  yes_default_rate, 0, 
+  lty=2, 
+  col="orange"
+)
+abline(
+  none_default_rate, 0, 
+  lty=2, 
+  col="blue"
+)
+
+title(
+  xlab="Credit Card Balance",
+  ylab="Default Rate"
+)
+```
+
+学生与 balance 的箱线图
+
+```{r fig.height=6, fig.width=6}
+boxplot(
+  balance ~ student,
+  data=Default,
+  col=c("blue", "orange"),
+  xlab="Student Status",
+  ylab="Credit Card Balance"
+)
+```
+
+student 倾向于持有更多的债务，导致从全局平均上看 student 的违约率更高。
+
+混淆现象，confounding
+
+预测
+
+```{r}
+predict(
+  logistic_multi_fit,
+  list(balance=1500, income=40000, student="Yes"),
+  type="response"
+)
+```
+
+```{r}
+predict(
+  logistic_multi_fit,
+  list(balance=1500, income=40000, student="No"),
+  type="response"
+)
+```
+
+### 响应分类数超过 2 的逻辑斯谛回归
+
+更适合使用线性判别分析
+
+## 线性判别分析
+
+
+
+## 分类方法的比较
+
