@@ -1,0 +1,290 @@
+---
+title: "分类：逻辑斯谛回归"
+output: html_notebook
+---
+
+```{r}
+library(ISLR)
+```
+
+
+## 数据
+
+股票市场数据
+
+```{r}
+attach(Smarket)
+```
+
+
+```{r paged.print=FALSE}
+head(Smarket)
+```
+
+```{r}
+dim(Smarket)
+```
+
+```{r}
+summary(Smarket)
+```
+
+`cor()` 函数计算相关系数矩阵
+
+注：因子变量 Direction 无法计算相关性
+
+```{r}
+cor(Smarket[, -9])
+```
+
+前几日投资回报率 (Lag1 - Loag5) 与当日回报率 (Today) 之间的相关系数接近于 0。
+
+Year 与 Volume 有相关性，因为 Volume 随 Year 增加而增长
+
+
+```{r}
+plot(Volume)
+```
+
+## 模型
+
+`glm()` 函数用于拟合**广义线性模型** (generalized linear model)
+
+`family=binomial` 使用逻辑斯谛回归
+
+```{r}
+glm_fit <- glm(
+  Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume,
+  data=Smarket,
+  family=binomial
+)
+```
+
+```{r}
+summary(glm_fit)
+```
+
+p 值均比较大，说明没有充分证据表明预测变量与 Direction 之间有确切的关联
+
+## 系数
+
+`coef()` 函数获取系数
+
+```{r}
+coef(glm_fit)
+```
+
+`summary()` 的结果可以获取更详细的信息，包括系数的 p 值
+
+```{r}
+summary(glm_fit)$coef
+```
+
+```{r}
+summary(glm_fit)$coef[,4]
+```
+
+## 预测
+
+`predict()` 函数用于预测
+
+`type="response"` 表示输出概率 P(Y=1 | X)
+
+```{r}
+glm_probs <- predict(
+  glm_fit,
+  type="response"
+)
+glm_probs[1:10]
+```
+
+`1` 表示 Up，即上涨
+
+```{r}
+contrasts(Direction)
+```
+
+将概率转换为类别
+
+```{r}
+glm_pred <- rep("Down", 1250)
+glm_pred[glm_probs > 0.5] = "Up"
+```
+
+`table()` 函数生成混淆矩阵，列联表
+
+```{r}
+table(
+  glm_pred,
+  Direction
+)
+```
+
+计算正确率
+
+```{r}
+(507+145) / 1250
+```
+
+```{r}
+mean(glm_pred == Direction)
+```
+
+## ROC 曲线
+
+```{r}
+library(pROC)
+```
+
+```{r}
+plot(
+  roc(
+    Direction,
+    glm_probs
+  ),
+  print.auc=TRUE,
+  plot=TRUE
+)
+```
+
+
+## 训练集与测试集
+
+训练集：2001 至 2004 年
+
+测试集：2005 年
+
+```{r}
+train <- (Year < 2005)
+```
+
+`train` 是一个布尔变量，Boolean vector
+
+```{r}
+smarket_2005 <- Smarket[!train, ]
+dim(smarket_2005)
+```
+
+
+```{r}
+direction_2005 <- Direction[!train]
+```
+
+使用 `subset` 参数拟合子集
+
+```{r}
+glm_train_fit <- glm(
+  Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume,
+  data=Smarket,
+  subset=train,
+  family=binomial
+)
+```
+
+```{r}
+summary(glm_train_fit)
+```
+
+预测 2005 年数据
+
+```{r}
+glm_2005_probs <- predict(
+  glm_train_fit,
+  smarket_2005,
+  type="response"
+)
+```
+
+使用 50% 作为阈值
+
+```{r}
+glm_2005_predict <- rep("Down", 252)
+glm_2005_predict[glm_2005_probs > .5] = "Up"
+```
+
+```{r}
+table(glm_2005_predict, direction_2005)
+```
+
+```{r}
+mean(glm_2005_predict == direction_2005)
+```
+
+```{r}
+mean(glm_2005_predict != direction_2005)
+```
+
+比随机猜想更糟糕！
+
+ROC 曲线
+
+```{r}
+plot(
+  roc(
+    direction_2005,
+    glm_2005_probs
+  ),
+  print.auc=TRUE,
+  plot=TRUE
+)
+```
+
+### 使用更少的变量
+
+仅使用 `Lag1` 和 `Lag2`
+
+```{r}
+glm_train_fit_v2 <- glm(
+  Direction ~ Lag1 + Lag2,
+  data=Smarket,
+  subset=train,
+  family=binomial
+)
+```
+
+```{r}
+summary(glm_train_fit_v2)
+```
+
+测试集性能
+
+```{r}
+glm_2005_probs_v2 <- predict(
+  glm_train_fit_v2,
+  smarket_2005,
+  type="response"
+)
+glm_2005_predict_v2 <- rep("Down", 252)
+glm_2005_predict_v2[glm_2005_predict_v2 > .5] = "Up"
+table(glm_2005_predict_v2, direction_2005)
+```
+
+```{r}
+mean(glm_2005_predict_v2 == direction_2005)
+```
+
+准确率
+
+```{r}
+mean(glm_2005_predict_v2 != direction_2005)
+```
+
+预测阳性率
+
+```{r}
+106/(106+76)
+```
+
+ROC 曲线
+
+```{r}
+plot(
+  roc(
+    direction_2005, 
+    glm_2005_probs_v2
+  ),
+  print.auc=TRUE,
+  plot=TRUE
+)
+```
+
