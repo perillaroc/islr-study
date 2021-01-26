@@ -1,0 +1,404 @@
+---
+title: "习题：Weekly数据集"
+output: html_notebook
+---
+
+## 数据
+
+Weekly，周投资回报
+
+```{r}
+library(ISLR)
+```
+
+```{r paged.print=FALSE}
+head(Weekly)
+```
+
+```{r}
+dim(Weekly)
+```
+
+
+```{r}
+summary(Weekly)
+```
+
+## 绘图分析
+
+### 散点图矩阵
+
+```{r}
+library(car)
+```
+
+```{r fig.height=8, fig.width=8}
+scatterplotMatrix(
+  ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume + Today + Year,
+  data=Weekly,
+  smooth=list(spread=FALSE, lty.smooth=2),
+)
+```
+
+### 相关图
+
+```{r}
+library(corrgram)
+```
+
+
+```{r fig.height=8, fig.width=8}
+corrgram(
+  Weekly,
+  order=TRUE,
+  lower.panel=panel.shade,
+  upper.panel=panel.pie,
+  text.panel=panel.txt
+)
+```
+
+## 逻辑斯谛回归
+
+
+### 模型
+
+```{r}
+glm_fit <- glm(
+  Direction ~ Lag1 + Lag2 + Lag3 + Lag4 + Lag5 + Volume,
+  data=Weekly,
+  family=binomial
+)
+```
+
+```{r}
+summary(glm_fit)
+```
+
+0.01 显著性水平中 Lag2 有显著性。
+
+### 效果
+
+预测结果
+
+```{r}
+glm_probs <- predict(
+  glm_fit,
+  type="response"
+)
+glm_predict <- rep("Down", nrow(Weekly))
+glm_predict[glm_probs > .5] = "Up"
+```
+
+整体预测准确率
+
+```{r}
+mean(glm_predict == Weekly$Direction)
+```
+
+混淆矩阵，列联表
+
+```{r}
+glm_table <- table(Weekly$Direction, glm_predict)
+glm_table
+```
+
+假阳性率，第 I 型错误，1-特异度
+
+FP/N
+
+```{r}
+430 / (54 + 430)
+```
+
+真阳性率，1-第 II 型错误，势，灵敏度，召回率
+
+TP / P
+
+```{r}
+557 / (48 + 557)
+```
+
+预测阳性率，精确度，1-假阳性率
+
+TP/P*
+
+```{r}
+557/(430 + 557)
+```
+
+预测阴性率
+
+TN/N*
+
+```{r}
+54/(54 + 48)
+```
+
+## 单要素
+
+### 训练数据集
+
+```{r}
+train <- Weekly$Year < 2009
+
+train_X <- Weekly[train,]
+train_Y <- Weekly$Direction[train]
+
+test_X <- Weekly[!train,]
+test_Y <- Weekly$Direction[!train]
+```
+
+### 逻辑斯谛回归
+
+```{r}
+glm_lag2_fit <- glm(
+  Direction ~ Lag2,
+  data=Weekly,
+  subset=train,
+  family=binomial()
+)
+summary(glm_lag2_fit)
+```
+
+#### 训练集
+
+列联表
+
+```{r}
+glm_lag2_probs <- predict(
+  glm_lag2_fit,
+  train_X,
+  type="response"
+)
+glm_lag2_predict <- rep("Down", nrow(train_X))
+glm_lag2_predict[glm_lag2_probs > .5] <- "Up"
+```
+
+```{r}
+table(train_Y, glm_lag2_predict)
+```
+
+总体准确率
+
+```{r}
+mean(glm_lag2_predict == train_Y)
+```
+
+#### 测试集
+
+```{r}
+glm_lag2_probs <- predict(
+  glm_lag2_fit,
+  test_X,
+  type="response"
+)
+glm_lag2_predict <- rep("Down", nrow(test_X))
+glm_lag2_predict[glm_lag2_probs > .5] <- "Up"
+```
+
+列联表
+
+```{r}
+table(test_Y, glm_lag2_predict)
+```
+
+总体准确率
+
+```{r}
+mean(glm_lag2_predict == test_Y)
+```
+
+### 线性判别分析
+
+```{r}
+library(MASS)
+```
+
+```{r}
+lda_lag2_fit <- lda(
+  Direction ~ Lag2,
+  data=Weekly,
+  subset=train
+)
+lda_lag2_fit
+```
+
+#### 训练集
+
+列联表
+
+```{r}
+lda_lag2_predict <- predict(
+  lda_lag2_fit,
+  train_X,
+)
+```
+
+```{r}
+table(train_Y, lda_lag2_predict$class)
+```
+
+总体准确率
+
+```{r}
+mean(lda_lag2_predict$class == train_Y)
+```
+
+#### 测试集
+
+列联表
+
+```{r}
+lda_lag2_predict <- predict(
+  lda_lag2_fit,
+  test_X,
+)
+```
+
+```{r}
+table(test_Y, lda_lag2_predict$class)
+```
+
+总体准确率
+
+```{r}
+mean(lda_lag2_predict$class == test_Y)
+```
+
+### 二次判别分析
+
+```{r}
+qda_lag2_fit <- qda(
+  Direction ~ Lag2,
+  data=Weekly,
+  subset=train
+)
+qda_lag2_fit
+```
+
+#### 训练集
+
+列联表
+
+```{r}
+qda_lag2_predict <- predict(
+  qda_lag2_fit,
+  train_X,
+)
+```
+
+```{r}
+table(train_Y, qda_lag2_predict$class)
+```
+
+总体准确率
+
+```{r}
+mean(qda_lag2_predict$class == train_Y)
+```
+
+#### 测试集
+
+列联表
+
+```{r}
+qda_lag2_predict <- predict(
+  qda_lag2_fit,
+  test_X,
+)
+```
+
+```{r}
+table(test_Y, qda_lag2_predict$class)
+```
+
+总体准确率
+
+```{r}
+mean(qda_lag2_predict$class == test_Y)
+```
+
+### KNN (k=1)
+
+```{r}
+library(class)
+```
+
+```{r}
+set.seed(1234)
+knn_lag2_predict <- knn(
+  train_X["Lag2"],
+  test_X["Lag2"],
+  train_Y,
+  k=1
+)
+```
+
+#### 训练集
+
+无须比较
+
+#### 测试集
+
+列联表
+
+```{r}
+table(test_Y, knn_lag2_predict)
+```
+
+总体准确率
+
+```{r}
+mean(knn_lag2_predict == test_Y)
+```
+
+
+### 对比
+
+| 方法 | 训练集准确率 | 测试集准确率 |
+|------|--------------|--------------|
+| 逻辑斯谛回归 | 55.5% | 62.5% |
+| 线性判别分析 | 55.4% | 62.5% |
+| 二次判别分析 | 55.2% | 58.7% |
+| KNN (k=1) | 100% | 51.0% |
+
+逻辑斯谛回归和线性判别分析的效果最好。
+
+## 多变量组合
+
+### 逻辑斯谛回归
+
+```{r}
+glm_fit <- glm(
+  Direction ~ Lag2 + I(Lag1^2),
+  data=Weekly,
+  subset=train,
+  family=binomial()
+)
+glm_probs <- predict(
+  glm_fit,
+  test_X,
+  type="response"
+)
+glm_predict <- rep("Down", nrow(test_X))
+glm_predict[glm_probs > .5] <- "Up"
+mean(glm_predict == test_Y)
+```
+
+### KNN
+
+```{r}
+probs <- NULL
+for (k in c(2, 5, 10, 15, 20)) {
+  set.seed(1234)
+  knn_predict <- knn(
+    train_X["Lag2"],
+    test_X["Lag2"],
+    train_Y,
+    k=k
+  )
+  probs <- c(probs, mean(knn_predict == test_Y))
+}
+for (p in probs) print(p)
+```
+
