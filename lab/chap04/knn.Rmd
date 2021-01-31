@@ -33,9 +33,6 @@ train <- (Year < 2005)
 构建测试集和训练集
 
 ```{r}
-```
-
-```{r}
 train_X <- cbind(Lag1, Lag2)[train,]
 test_X <- cbind(Lag1, Lag2)[!train,]
 train_direction <- Direction[train]

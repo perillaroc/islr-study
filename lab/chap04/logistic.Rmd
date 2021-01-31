@@ -210,9 +210,6 @@ glm_train_fit <- glm(
   subset=train,
   family=binomial
 )
-```
-
-```{r}
 summary(glm_train_fit)
 ```
 
@@ -261,7 +258,7 @@ plot(
 )
 ```
 
-### 使用更少的变量
+## 使用更少的变量
 
 仅使用 `Lag1` 和 `Lag2`
 
@@ -272,9 +269,6 @@ glm_train_fit_v2 <- glm(
   subset=train,
   family=binomial
 )
-```
-
-```{r}
 summary(glm_train_fit_v2)
 ```
 
