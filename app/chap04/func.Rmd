@@ -1,0 +1,118 @@
+---
+title: "习题：R函数"
+output: html_notebook
+---
+
+## 函数V1
+
+```{r}
+Power <- function() {
+  2^3
+}
+```
+
+```{r}
+Power()
+```
+
+## 函数V2
+
+```{r}
+Power2 <- function(x, a) {
+  x^a
+}
+```
+
+```{r}
+Power2(3, 8)
+```
+
+更多示例
+
+```{r}
+Power2(10, 3)
+```
+
+```{r}
+Power2(8, 17)
+```
+
+```{r}
+Power2(131, 3)
+```
+
+## 函数V3
+
+```{r}
+Power3 <- function(x, a) {
+  list(result=x^a)
+}
+```
+
+```{r}
+Power3(10, 3)
+```
+
+## 画图
+
+```{r}
+plot(
+  1:10,
+  sapply(1:10, function(x){Power3(x, 2)}),
+  type="l",
+  xlab="x",
+  ylab="x^2",
+  main="f(x)=x^2"
+)
+```
+
+仅 y 轴使用对数坐标
+
+```{r}
+plot(
+  1:10,
+  sapply(1:10, function(x){Power3(x, 2)}),
+  type="l",
+  xlab="x",
+  ylab="x^2",
+  main="f(x)=x^2",
+  log="y"
+)
+```
+
+x 轴和 y 轴同时使用对数坐标
+
+```{r}
+plot(
+  1:10,
+  sapply(1:10, function(x){Power3(x, 2)}),
+  type="l",
+  xlab="x",
+  ylab="x^2",
+  main="f(x)=x^2",
+  log="xy"
+)
+```
+
+## 画图函数
+
+```{r}
+PlotPower <- function(x, a) {
+  plot(
+    x,
+    sapply(x, function(y){Power3(y, a)}),
+    type="l",
+    xlab="x",
+    ylab=paste("x^", a),
+    main=paste("f(x)=x^", a),
+  )
+}
+```
+
+
+```{r}
+PlotPower(1:10, 3)
+```
+
+
+
