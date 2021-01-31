@@ -1,0 +1,317 @@
+---
+title: "习题：Boston数据集"
+output: html_notebook
+---
+
+```{r}
+library(ISLR)
+library(MASS)
+library(car)
+library(corrgram)
+library(stringr)
+library(class)
+library(glue)
+```
+
+
+## 数据集
+
+```{r paged.print=FALSE}
+head(Boston)
+```
+
+其中 `crim` 是郊区犯罪率
+
+```{r}
+dim(Boston)
+```
+
+创建分类变量，生成新的 data.frame
+
+```{r paged.print=FALSE}
+threshold <- median(Boston$crim)
+crim01 <- ifelse(Boston$crim > threshold, 1, 0)
+boston_v2 <- data.frame(
+  crim01,
+  Boston[, -1]
+)
+head(boston_v2)
+```
+
+## 训练集与测试集
+
+```{r}
+set.seed(1234)
+train <- sample(
+  nrow(boston_v2), 
+  nrow(boston_v2)*0.75, 
+  replace=FALSE
+)
+train_X <- boston_v2[train, c(-1)]
+train_y <- boston_v2$crim01[train]
+test_X <- boston_v2[-train, c(-1)]
+test_y <- boston_v2$crim01[-train]
+```
+
+## 散点图与箱线图
+
+```{r fig.height=8, fig.width=8}
+scatterplotMatrix(
+  boston_v2,
+  smooth=FALSE,
+  regLine=FALSE
+)
+```
+
+```{r fig.height=5, fig.width=8}
+vs <- colnames(boston_v2)[c(-1)]
+for (v in vs) {
+  par(mfrow=c(1, 2))
+  with(
+    boston_v2,
+    plot(
+      crim01,
+      get(v),
+      xlab="crim01",
+      ylab=v
+    )
+  )
+  boxplot(
+    as.formula(paste(v, "~crim01")),
+    data=boston_v2
+  )
+}
+```
+
+有效果的变量
+
+- indus*
+- nox
+- age*
+- dis
+- black*
+- lstat
+- medv
+
+```{r}
+predictors_v1 <- c(
+  "nox",
+  "dis",
+  "lstat",
+  "medv"
+)
+```
+
+
+## 相关性分析
+
+
+```{r}
+sort(cor(boston_v2)[1,])
+```
+
+```{r fig.height=8, fig.width=8}
+corrgram(
+  boston_v2,
+  lower.panel=panel.shade,
+  upper.panel=panel.pie,
+  text.panel=panel.txt,
+)
+```
+
+与 crim01 相关性较大的变量：
+
+- indus
+- nox
+- age
+- dis
+- rad
+- tax
+
+```{r}
+predictors_v2 <- c(
+  "indus",
+  "nox",
+  "age",
+  "dis",
+  "rad",
+  "tax"
+)
+```
+
+
+## 逻辑斯谛回归
+
+
+```{r}
+logistic_v1_fit <- glm(
+  as.formula(
+    paste(
+      "crim01 ~ ", str_c(predictors_v1, collapse="+")
+    )
+  ),
+  data=boston_v2,
+  subset=train,
+  family=binomial
+)
+summary(logistic_v1_fit)
+```
+
+```{r}
+logistic_v1_probs <- predict(
+  logistic_v1_fit,
+  test_X,
+  type="response"
+)
+logistic_v1_predict <- rep(0, nrow(test_X))
+logistic_v1_predict[logistic_v1_probs > .5] <- 1
+mean(logistic_v1_predict == test_y)
+```
+
+```{r}
+logistic_v2_fit <- glm(
+  as.formula(
+    paste(
+      "crim01 ~ ", str_c(predictors_v2, collapse="+")
+    )
+  ),
+  data=boston_v2,
+  subset=train,
+  family=binomial
+)
+summary(logistic_v2_fit)
+```
+
+```{r}
+logistic_v2_probs <- predict(
+  logistic_v2_fit,
+  test_X,
+  type="response"
+)
+logistic_v2_predict <- rep(0, nrow(test_X))
+logistic_v2_predict[logistic_v2_probs > .5] <- 1
+mean(logistic_v2_predict == test_y)
+```
+
+
+## 线性判别分析
+
+```{r}
+lda_v1_fit <- lda(
+  as.formula(
+    paste(
+      "crim01 ~ ", str_c(predictors_v1, collapse="+")
+    )
+  ),
+  data=boston_v2,
+  subset=train,
+)
+lda_v1_fit
+```
+
+```{r}
+lda_v1_predict <- predict(
+  lda_v1_fit,
+  test_X
+)
+mean(lda_v1_predict$class == test_y)
+```
+
+```{r}
+lda_v2_fit <- lda(
+  as.formula(
+    paste(
+      "crim01 ~ ", str_c(predictors_v2, collapse="+")
+    )
+  ),
+  data=boston_v2,
+  subset=train,
+)
+lda_v2_fit
+```
+
+```{r}
+lda_v2_predict <- predict(
+  lda_v2_fit,
+  test_X
+)
+mean(lda_v2_predict$class == test_y)
+```
+
+## 二次判别分析
+
+
+```{r}
+qda_v1_fit <- qda(
+  as.formula(
+    paste(
+      "crim01 ~ ", str_c(predictors_v1, collapse="+")
+    )
+  ),
+  data=boston_v2,
+  subset=train,
+)
+qda_v1_fit
+```
+
+```{r}
+qda_v1_predict <- predict(
+  qda_v1_fit,
+  test_X
+)
+mean(qda_v1_predict$class == test_y)
+```
+
+```{r}
+qda_v2_fit <- qda(
+  as.formula(
+    paste(
+      "crim01 ~ ", str_c(predictors_v2, collapse="+")
+    )
+  ),
+  data=boston_v2,
+  subset=train,
+)
+qda_v2_fit
+```
+
+```{r}
+qda_v2_predict <- predict(
+  qda_v2_fit,
+  test_X
+)
+mean(qda_v2_predict$class == test_y)
+```
+
+## K最近邻
+
+
+```{r paged.print=FALSE}
+ks <- 2:10
+p1 <- NULL
+p2 <- NULL
+for (k in ks) {
+  knn_v1_predict <- knn(
+    train_X[predictors_v1],
+    test_X[predictors_v1],
+    train_y,
+    k=k
+  )
+  p1 <- c(p1, mean(knn_v1_predict == test_y))
+  knn_v2_predict <- knn(
+    train_X[predictors_v2],
+    test_X[predictors_v2],
+    train_y,
+    k=k
+  )
+  p2 <- c(p2, mean(knn_v2_predict == test_y))
+}
+r <- data.frame(
+  p1=p1,
+  p2=p2
+)
+rownames(r) <- ks
+r
+```
+
+效果最好的组合时 K=5 的最近邻方法，使用第二组预测变量。
