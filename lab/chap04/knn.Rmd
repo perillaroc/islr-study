@@ -1,14 +1,16 @@
 ---
-title: "K最近邻法"
+title: "分类：K最近邻法"
 output: html_notebook
 ---
 
-
 ```{r}
 library(ISLR)
+library(class)
 ```
 
 ## 数据
+
+股票市场数据
 
 ```{r}
 data(Smarket)
@@ -31,7 +33,6 @@ train <- (Year < 2005)
 构建测试集和训练集
 
 ```{r}
-library(class)
 ```
 
 ```{r}
@@ -60,7 +61,7 @@ knn_predict <- knn(
 列联表
 
 ```{r}
-table(knn_predict, test_direction)
+table(test_direction, knn_predict)
 ```
 
 正确率
@@ -84,7 +85,7 @@ knn_predict <- knn(
 列联表
 
 ```{r}
-table(knn_predict, test_direction)
+table(test_direction, knn_predict)
 ```
 
 正确率
@@ -143,12 +144,7 @@ train_Y <- Purchase[-test]
 test_Y <- Purchase[test]
 ```
 
-## 预测
-
-```{r}
-library(class)
-```
-
+### K最近邻
 
 ```{r}
 set.seed(1)
@@ -172,7 +168,7 @@ mean(test_Y != "No")
 
 只有 6% 的顾客购买了保险
 
-## 预测阳性率
+#### 预测阳性率
 
 精确率
 

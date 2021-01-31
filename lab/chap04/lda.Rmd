@@ -5,9 +5,13 @@ output: html_notebook
 
 ```{r}
 library(ISLR)
+library(MASS)
+library(pROC)
 ```
 
 ## 数据
+
+股票市场数据
 
 ```{r}
 data(Smarket)
@@ -34,7 +38,6 @@ smarket_2005 <- Smarket[!train, ]
 dim(smarket_2005)
 ```
 
-
 ```{r}
 direction_2005 <- Direction[!train]
 ```
@@ -42,10 +45,6 @@ direction_2005 <- Direction[!train]
 ## 方法
 
 `MASS` 包的 `lda()` 函数实现线性判别分析
-
-```{r}
-library(MASS)
-```
 
 ```{r}
 lda_fit <- lda(
@@ -58,7 +57,7 @@ lda_fit
 
 `plot()` 函数生成线性判别图像
 
-```{r}
+```{r fig.height=6, fig.width=6}
 plot(lda_fit)
 ```
 
@@ -100,7 +99,7 @@ lda_predict$x[1:20]
 
 ```{r}
 lda_class <- lda_predict$class
-table(lda_class, direction_2005)
+table(direction_2005, lda_class)
 ```
 
 ```{r}
@@ -110,11 +109,11 @@ mean(lda_class == direction_2005)
 class 使用 50% 作为阈值
 
 ```{r}
-sum(lda_predict$posterior[,1] >= .5)
+sum(lda_predict$posterior[,1] > .5)
 ```
 
 ```{r}
-sum(lda_predict$posterior[,1] < .5)
+sum(lda_predict$posterior[,1] <= .5)
 ```
 
 使用 90% 作为阈值
@@ -125,11 +124,7 @@ sum(lda_predict$posterior[,1] > .9)
 
 ## ROC 曲线
 
-```{r}
-library(pROC)
-```
-
-```{r}
+```{r fig.height=6, fig.width=6}
 plot(
   roc(
     direction_2005,

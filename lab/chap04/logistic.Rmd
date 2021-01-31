@@ -5,8 +5,10 @@ output: html_notebook
 
 ```{r}
 library(ISLR)
+library(corrgram)
+library(car)
+library(pROC)
 ```
-
 
 ## 数据
 
@@ -15,7 +17,6 @@ library(ISLR)
 ```{r}
 attach(Smarket)
 ```
-
 
 ```{r paged.print=FALSE}
 head(Smarket)
@@ -29,6 +30,10 @@ dim(Smarket)
 summary(Smarket)
 ```
 
+## 探索数据
+
+**相关性**
+
 `cor()` 函数计算相关系数矩阵
 
 注：因子变量 Direction 无法计算相关性
@@ -37,18 +42,34 @@ summary(Smarket)
 cor(Smarket[, -9])
 ```
 
+`corrgram` 包的 `corrgram()` 函数绘制相关图
+
+```{r fig.height=6, fig.width=6}
+corrgram(
+  Smarket[, -9],
+  lower.panel=panel.shade,
+  upper.panel=panel.pie,
+  text.panel=panel.txt
+)
+```
+
 前几日投资回报率 (Lag1 - Loag5) 与当日回报率 (Today) 之间的相关系数接近于 0。
 
-Year 与 Volume 有相关性，因为 Volume 随 Year 增加而增长
-
+唯一有较大相关性的是 Year 与 Volume，因为 Volume 随 Year 增加而增长
 
 ```{r}
-plot(Volume)
+scatterplot(
+  1:length(Volume),
+  Volume,
+  xlab="Index",
+  ylab="Volume",
+  boxplots=FALSE
+)
 ```
 
 ## 模型
 
-`glm()` 函数用于拟合**广义线性模型** (generalized linear model)
+`glm()` 函数用于拟合 **广义线性模型** (generalized linear model)
 
 `family=binomial` 使用逻辑斯谛回归
 
@@ -58,9 +79,6 @@ glm_fit <- glm(
   data=Smarket,
   family=binomial
 )
-```
-
-```{r}
 summary(glm_fit)
 ```
 
@@ -88,7 +106,7 @@ summary(glm_fit)$coef[,4]
 
 `predict()` 函数用于预测
 
-`type="response"` 表示输出概率 P(Y=1 | X)
+`type="response"` 表示输出概率 `P(Y=1 | X)`
 
 ```{r}
 glm_probs <- predict(
@@ -107,46 +125,59 @@ contrasts(Direction)
 将概率转换为类别
 
 ```{r}
-glm_pred <- rep("Down", 1250)
-glm_pred[glm_probs > 0.5] = "Up"
+glm_predict <- rep("Down", 1250)
+glm_predict[glm_probs > 0.5] = "Up"
 ```
 
 `table()` 函数生成混淆矩阵，列联表
 
+| | 预测- | 预测+ |  |
+|--|------|-------|--|
+| 真实- | 真阴性值 TN | 假阳性值 FP | N |
+| 真实+ | 假阳性值 FN | 真阳性值 TP | P
+| | N* | P* |  |
+
 ```{r}
-table(
-  glm_pred,
+glm_predict_table <- table(
+  glm_predict,
   Direction
 )
+glm_predict_table
+```
+
+```{r}
+addmargins(glm_predict_table)
 ```
 
 计算正确率
+
+(TF + TP) / (F + P)
 
 ```{r}
 (507+145) / 1250
 ```
 
 ```{r}
-mean(glm_pred == Direction)
+mean(glm_predict == Direction)
 ```
 
 ## ROC 曲线
 
-```{r}
-library(pROC)
-```
+`pROC` 包的 `roc()` 函数
 
-```{r}
+```{r fig.height=6, fig.width=6}
 plot(
   roc(
     Direction,
     glm_probs
   ),
   print.auc=TRUE,
-  plot=TRUE
+  plot=TRUE,
+  main="ROC Curve for Lag[1-5]"
 )
 ```
 
+AUC 值很接近 0.5，与随机猜想效果差不多。
 
 ## 训练集与测试集
 
@@ -218,14 +249,15 @@ mean(glm_2005_predict != direction_2005)
 
 ROC 曲线
 
-```{r}
+```{r fig.height=6, fig.width=6}
 plot(
   roc(
     direction_2005,
     glm_2005_probs
   ),
   print.auc=TRUE,
-  plot=TRUE
+  plot=TRUE,
+  main="ROC Curve for Lag[1-5] on test set"
 )
 ```
 
@@ -277,14 +309,16 @@ mean(glm_2005_predict_v2 != direction_2005)
 
 ROC 曲线
 
-```{r}
+```{r fig.height=6, fig.width=6}
 plot(
   roc(
     direction_2005, 
     glm_2005_probs_v2
   ),
   print.auc=TRUE,
-  plot=TRUE
+  plot=TRUE,
+  main="ROC Curve for Lag1 + Lag2"
 )
 ```
 
+预测效果略有改善，但仍和随机猜想效果差不多。

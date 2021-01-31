@@ -1,14 +1,17 @@
 ---
-title: "二次判别分析"
+title: "分类：二次判别分析"
 output: html_notebook
 ---
 
-
 ```{r}
 library(ISLR)
+library(MASS)
+library(pROC)
 ```
 
 ## 数据
+
+股票市场数据
 
 ```{r}
 data(Smarket)
@@ -45,10 +48,6 @@ direction_2005 <- Direction[!train]
 `MASS` 包的 `qda()` 函数实现二次判别分析
 
 ```{r}
-library(MASS)
-```
-
-```{r}
 qda_fit <- qda(
   Direction ~ Lag1 + Lag2,
   data=Smarket,
@@ -70,7 +69,7 @@ qda_class <- qda_predict$class
 列联表
 
 ```{r}
-table(qda_class, direction_2005)
+table(direction_2005, qda_class)
 ```
 
 ```{r}
@@ -79,11 +78,7 @@ mean(qda_class == direction_2005)
 
 ## ROC 曲线
 
-```{r}
-library(pROC)
-```
-
-```{r}
+```{r fig.height=6, fig.width=6}
 plot(
   roc(
     direction_2005,
