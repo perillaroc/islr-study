@@ -1,0 +1,192 @@
+---
+title: "习题：Auto数据集"
+output: html_notebook
+---
+
+```{r}
+library(ISLR)
+library(car)
+library(MASS)
+library(class)
+```
+
+## 数据
+
+```{r paged.print=FALSE}
+head(Auto)
+```
+
+```{r}
+dim(Auto)
+```
+
+
+## 创建类别变量
+
+按 mpg 的中位数分为两类
+
+```{r}
+threshold <- median(Auto$mpg)
+threshold
+```
+
+```{r}
+mpg01 <- ifelse(Auto$mpg > threshold, 1, 0)
+```
+
+
+创建新的数据框
+
+```{r paged.print=FALSE}
+auto_v2 <- data.frame(
+  mpg01,
+  Auto[,-1]
+)
+head(auto_v2)
+```
+
+```{r}
+sum(auto_v2$mpg01 == 1)
+```
+
+
+## 探索分类变量
+
+散点图
+
+```{r fig.height=8, fig.width=8}
+scatterplotMatrix(
+  auto_v2[, -9],
+  smooth=FALSE,
+  regLine=FALSE
+)
+```
+
+箱线图
+
+```{r fig.height=8, fig.width=8}
+par(mfrow=c(3, 3))
+for (v in colnames(auto_v2)[c(-1, -9)]) {
+  formula <- paste(v, "~", "mpg01")
+  boxplot(
+    as.formula(formula),
+    data=auto_v2
+  )
+}
+```
+
+与 mpg01 可能有关联的变量：
+
+- displacement
+- horsepower
+- weight
+- acceleration 
+
+## 训练集与测试集
+
+```{r}
+set.seed(1234)
+train <- sample(
+  nrow(auto_v2), 
+  nrow(auto_v2)/4*3,
+  replace=F
+)
+```
+
+## 线性判别回归
+
+```{r}
+lda_fit <- lda(
+  mpg01 ~ displacement + horsepower + weight + acceleration,
+  data=auto_v2,
+  subset=train
+)
+lda_fit
+```
+
+```{r}
+lda_predict <- predict(
+  lda_fit,
+  auto_v2[-train,]
+)
+```
+
+```{r}
+mean(lda_predict$class == auto_v2[-train,]$mpg01)
+```
+
+
+## 二次判别回归
+
+```{r}
+qda_fit <- qda(
+  mpg01 ~ displacement + horsepower + weight + acceleration,
+  data=auto_v2,
+  subset=train
+)
+qda_fit
+```
+
+```{r}
+qda_predict <- predict(
+  qda_fit,
+  auto_v2[-train,]
+)
+```
+
+```{r}
+mean(qda_predict$class == auto_v2[-train,]$mpg01)
+```
+
+## 逻辑斯谛回归
+
+```{r}
+logistic_fit <- glm(
+  mpg01 ~ displacement + horsepower + weight + acceleration,
+  data=auto_v2,
+  subset=train,
+  family=binomial
+)
+summary(logistic_fit)
+```
+
+```{r}
+logistic_probs <- predict(
+  logistic_fit,
+  auto_v2[-train,],
+  type="response"
+)
+logistic_predict <- rep(0, nrow(auto_v2[-train,]))
+logistic_predict[logistic_probs > .5] <- 1
+mean(logistic_predict == auto_v2[-train,]$mpg01)
+```
+
+## K最近邻
+
+```{r}
+X_labels <- c("displacement", "horsepower", "weight", "acceleration")
+y_labels <- c("mpg01")
+train_X <- auto_v2[train, X_labels]
+train_y <- auto_v2[train, y_labels]
+
+test_X <- auto_v2[-train, X_labels]
+test_y <- auto_v2[-train, y_labels]
+```
+
+测试多个 k 值
+
+```{r}
+ks <- 2:10
+for (k in ks) {
+  knn_predict <- knn(
+    train_X,
+    test_X,
+    train_y,
+    k=k
+  )
+  print(paste("k=", k, ":", round(mean(knn_predict == test_y), 8)))
+}
+```
+
+k = 8 时效果最好。
+但应该注意到 k >= 3 时，各个值的区别不大。
