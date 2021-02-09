@@ -3,13 +3,17 @@ title: "习题：Weekly数据集"
 output: html_notebook
 ---
 
+```{r}
+library(ISLR)
+library(car)
+library(corrgram)
+library(MASS)
+library(class)
+```
+
 ## 数据
 
 Weekly，周投资回报
-
-```{r}
-library(ISLR)
-```
 
 ```{r paged.print=FALSE}
 head(Weekly)
@@ -19,7 +23,6 @@ head(Weekly)
 dim(Weekly)
 ```
 
-
 ```{r}
 summary(Weekly)
 ```
@@ -27,10 +30,6 @@ summary(Weekly)
 ## 绘图分析
 
 ### 散点图矩阵
-
-```{r}
-library(car)
-```
 
 ```{r fig.height=8, fig.width=8}
 scatterplotMatrix(
@@ -42,12 +41,7 @@ scatterplotMatrix(
 
 ### 相关图
 
-```{r}
-library(corrgram)
-```
-
-
-```{r fig.height=8, fig.width=8}
+```{r fig.height=6, fig.width=6}
 corrgram(
   Weekly,
   order=TRUE,
@@ -211,10 +205,6 @@ mean(glm_lag2_predict == test_Y)
 ### 线性判别分析
 
 ```{r}
-library(MASS)
-```
-
-```{r}
 lda_lag2_fit <- lda(
   Direction ~ Lag2,
   data=Weekly,
@@ -319,10 +309,6 @@ mean(qda_lag2_predict$class == test_Y)
 ```
 
 ### KNN (k=1)
-
-```{r}
-library(class)
-```
 
 ```{r}
 set.seed(1234)
