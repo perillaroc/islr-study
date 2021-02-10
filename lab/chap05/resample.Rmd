@@ -1,5 +1,5 @@
 ---
-title: "实验：重抽样方法"
+title: "ISLR实验：交叉验证法和自助法"
 output: html_notebook
 ---
 
@@ -9,6 +9,11 @@ library(ISLR)
 
 ## 验证集方法
 
+validation set approach
+
+随机吧观测集分成两部分：一个训练集 (training set) 和一个验证集 (validation set)，或叫做保留集 (hold-out set)。
+在训练集上拟合模型，用验证集计算错误率 (通常使用均方误差)
+
 ```{r paged.print=FALSE}
 head(Auto)
 ```
@@ -17,8 +22,8 @@ head(Auto)
 dim(Auto)
 ```
 
-随机抽取训练集。
-为保证结果一致，设置固定的随机数种子。
+随机抽取训练集，使用 `sample()` 函数生成样本抽样序号子集。
+为保证结果一致，使用 `set.seed()` 函数设置固定的随机数种子。
 
 ```{r}
 set.seed(1)
@@ -41,7 +46,7 @@ lm_fit <- lm(
 mean((Auto$mpg - predict(lm_fit, Auto))[-train]^2)
 ```
 
-二次和三次多项式回归的均方误差
+计算二次和三次多项式回归的均方误差
 
 ```{r}
 lm_fit_p2 <- lm(
@@ -97,6 +102,15 @@ mean((Auto$mpg - predict(lm_fit_p3, Auto))[-train]^2)
 
 ## 留一交叉验证法
 
+leave-one-out cross-validation, LOOCV
+
+将一个单独的观测作为验证集，剩下的观测作为训练集。
+多次重复该步骤，计算测试均方误差的 LOOCV 估计：
+
+$$
+CV_{(n)} = \frac {1} {n} \sum_{i=1}^n MSE_i
+$$
+
 不设置 `family` 参数的 `glm()` 函数与 `lm()` 函数一样执行线性回归
 
 ```{r}
@@ -121,7 +135,8 @@ coefficients(lm_fit)
 library(boot)
 ```
 
-`delta` 向量中的两个数字为交叉验证的结果，本例中两个数字相等
+`cv.glm()` 函数返回结果中 `delta` 向量的两个数字为交叉验证的结果。
+本例中两个数字相等
 
 ```{r}
 glm_fit <- glm(
@@ -152,7 +167,19 @@ for (i in 1:5) {
 cv.error
 ```
 
+可以看到，超过二次的多项式拟合效果没有显著的提升
+
 ## k 折交叉验证法
+
+k-fold CV
+
+将观测集随机地分为 k 个大小基本一致的组，或者说折 (fold)。
+将某一个折作为验证集，其余折作为训练集。
+重复该步骤 k 次，得到 k 折 CV 估计：
+
+$$
+CV_{(k)} = \frac {1} {k} \sum_{i=1}^k MSE_{i}
+$$
 
 `cv.glm()` 函数也可以实现 k 折交叉验证法。
 通常 k 取 10。
@@ -182,7 +209,11 @@ cv_error_10
 
 ## 自助法
 
-### 估计一个感兴趣的统计量的经度
+bootstrap
+
+### 估计一个感兴趣的统计量的精度
+
+金融资产数据集，X 和 Y 是两种金融资产的收益
 
 ```{r paged.print=FALSE}
 head(Portfolio)
@@ -192,8 +223,7 @@ head(Portfolio)
 dim(Portfolio)
 ```
 
-
-alpha 估计
+alpha 估计，使总风险或者说是总方差最小
 
 ```{r}
 alpha_fn <- function(data, index) {
@@ -211,14 +241,14 @@ alpha_fn <- function(data, index) {
 alpha_fn(Portfolio, 1:100)
 ```
 
-`sample()` 有放回地取出 100 个观测
+`sample()` 有放回地取出 100 个观测进行估计
 
 ```{r}
 set.seed(1)
 alpha_fn(Portfolio, sample(100, 100, replace=TRUE))
 ```
 
-自助法
+自助法，重复 1000 次上述步骤
 
 ```{r}
 boot_result <- boot(
@@ -229,7 +259,9 @@ boot_result <- boot(
 boot_result
 ```
 
-`boot.ci()` 函数求置信区间
+估计 alpha 为 0.5758，标准误为 0.0937
+
+使用 `boot.ci()` 函数求 alpha 的 95% 置信区间
 
 ```{r}
 boot.ci(boot_result, type="norm")
