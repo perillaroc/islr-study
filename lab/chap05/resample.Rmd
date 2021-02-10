@@ -11,8 +11,8 @@ library(ISLR)
 
 validation set approach
 
-随机吧观测集分成两部分：一个训练集 (training set) 和一个验证集 (validation set)，或叫做保留集 (hold-out set)。
-在训练集上拟合模型，用验证集计算错误率 (通常使用均方误差)
+随机将观测集分成两部分：一个训练集 (training set) 和一个验证集 (validation set)，或叫做保留集 (hold-out set)。
+在训练集上拟合模型，用验证集计算错误率 (通常使用均方误差)。
 
 ```{r paged.print=FALSE}
 head(Auto)
@@ -182,7 +182,7 @@ CV_{(k)} = \frac {1} {k} \sum_{i=1}^k MSE_{i}
 $$
 
 `cv.glm()` 函数也可以实现 k 折交叉验证法。
-通常 k 取 10。
+通常 k 取 5 或 10。
 
 ```{r}
 set.seed(17)
@@ -223,7 +223,8 @@ head(Portfolio)
 dim(Portfolio)
 ```
 
-alpha 估计，使总风险或者说是总方差最小
+计划将 alpha 比例投资 X，1 - alpha 比例投资到 Y。
+估计 alpha，使总风险或者说是总方差最小
 
 ```{r}
 alpha_fn <- function(data, index) {
@@ -241,7 +242,7 @@ alpha_fn <- function(data, index) {
 alpha_fn(Portfolio, 1:100)
 ```
 
-`sample()` 有放回地取出 100 个观测进行估计
+`sample()` 有放回地取出 100 个观测进行估计 (`replace=TRUE`)
 
 ```{r}
 set.seed(1)
