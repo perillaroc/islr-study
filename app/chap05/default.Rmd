@@ -1,0 +1,168 @@
+---
+title: "习题：Default数据集"
+output: html_notebook
+---
+
+```{r}
+library(ISLR)
+library(boot)
+```
+
+```{r paged.print=FALSE}
+head(Default)
+```
+
+```{r}
+dim(Default)
+```
+
+
+## 逻辑斯谛回归
+
+使用全部数据训练逻辑斯谛回归模型
+
+```{r}
+glm_fit <- glm(
+  default ~ income + balance,
+  data=Default,
+  family=binomial()
+)
+summary(glm_fit)
+```
+
+## 验证集方法
+
+### 基本
+
+划分训练集和测试集
+
+```{r}
+set.seed(1)
+train <- sample(nrow(Default), nrow(Default)/2)
+```
+
+使用训练集拟合模型
+
+```{r}
+t1_glm_fit <- glm(
+  default ~ income + balance,
+  data=Default,
+  subset=train,
+  family=binomial()
+)
+```
+
+计算后验概率
+
+```{r}
+t1_probs <- predict(
+  t1_glm_fit,
+  Default[-train, ],
+  type="response"
+)
+t1_predicts <- rep("No", nrow(Default[-train]))
+t1_predicts[t1_probs > 0.5] <- "Yes"
+```
+
+计算验证集错误率
+
+```{r}
+mean(t1_predicts != Default$default[-train])
+```
+
+### 训练集划分方法
+
+换两种训练集划分方法
+
+```{r}
+for (i in c(2, 3)) {
+  set.seed(i)
+  train <- sample(nrow(Default), nrow(Default)/2)
+  t_glm_fit <- glm(
+    default ~ income + balance,
+    data=Default,
+    subset=train,
+    family=binomial()
+  )
+  t_probs <- predict(
+    t_glm_fit,
+    Default[-train, ],
+    type="response"
+  )
+  t_predicts <- rep("No", nrow(Default[-train]))
+  t_predicts[t_probs > 0.5] <- "Yes"
+  print(mean(t_predicts != Default$default[-train]))
+}
+```
+
+三次结果不同，说明验证集方法结果与训练集划分有关。
+
+### 增加哑元变量
+
+```{r}
+for (i in 1:3) {
+  set.seed(i)
+  train <- sample(nrow(Default), nrow(Default)/2)
+  t_glm_fit <- glm(
+    default ~ income + balance + student,
+    data=Default,
+    subset=train,
+    family=binomial()
+  )
+  t_probs <- predict(
+    t_glm_fit,
+    Default[-train, ],
+    type="response"
+  )
+  t_predicts <- rep("No", nrow(Default[-train]))
+  t_predicts[t_probs > 0.5] <- "Yes"
+  print(mean(t_predicts != Default$default[-train]))
+}
+```
+
+哑元变量 student 对减小测试错误率没有影响。
+
+## 自助法
+
+标准误差估计
+
+```{r}
+glm_fit <- glm(
+  default ~ income + balance,
+  data=Default,
+  family=binomial()
+)
+summary(glm_fit)$coef[-1,]
+```
+
+统计函数
+
+```{r}
+boot_fn <- function(data, indices) {
+  glm_fit <- glm(
+    default ~ income + balance,
+    data=data,
+    subset=indices,
+    family=binomial()
+  )
+  return (coef(glm_fit)[-1])
+}
+```
+
+使用 `boot()` 函数估计系数的标准误差
+
+```{r}
+set.seed(1)
+boot(Default, boot_fn, R=1000)
+```
+
+两种方法求得的系数标准差对比
+
+| 方法 | income | balance |
+|------|--------| -------|
+| 标准方法 | 4.985167e-06 | 2.273731e-04 |
+| 自助法 | 4.866284e-06 | 2.298949e-04 |
+
+自助法相对于标准方法，income 标准差减少，balance 标准差增大。
+因为 default 的对数发生比与 income 和 balance 的实际关系不一定满足线性关系的约束条件，所以两者求得的结果不同，自助法结果更接近实际情况。
+
