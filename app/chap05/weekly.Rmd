@@ -1,0 +1,88 @@
+---
+title: "习题：Weekly 数据集"
+output: html_notebook
+---
+
+```{r}
+library(ISLR)
+```
+
+
+```{r paged.print=FALSE}
+head(Weekly)
+```
+
+```{r}
+dim(Weekly)
+```
+
+## 逻辑斯谛回归
+
+```{r}
+glm_fit <- glm(
+  Direction ~ Lag1 + Lag2,
+  data=Weekly,
+  family=binomial()
+)
+summary(glm_fit)
+```
+
+使用出第 1 个观测外的所有观测预测
+
+```{r}
+glm_fit <- glm(
+  Direction ~ Lag1 + Lag2,
+  data=Weekly,
+  subset=c(-1),
+  family=binomial()
+)
+summary(glm_fit)
+```
+
+预测第一个观测
+
+```{r}
+prob <- predict(
+  glm_fit, Weekly[1,], 
+  type="response"
+)
+prob
+```
+
+```{r}
+result <- ifelse(prob > 0.5, "Up", "Down")
+result
+```
+
+
+```{r}
+Weekly[1,]$Direction
+```
+
+第一个观测分类错误
+
+## LOOCV 手动实现
+
+```{r}
+r <- rep(0, nrow(Weekly))
+for (i in 1:nrow(Weekly)) {
+  glm_fit <- glm(
+    Direction ~ Lag1 + Lag2,
+    data=Weekly,
+    subset=c(-i),
+    family=binomial()
+  )
+  prob <- predict(
+    glm_fit, Weekly[1,], 
+    type="response"
+  )
+  result <- ifelse(prob > 0.5, "Up", "Down")
+  r[i] <- ifelse(Weekly[i,]$Direction == result, 1, 0)
+}
+```
+
+```{r}
+mean(r == 0)
+```
+
+错误率为 44.4%，略优于随机猜想。
