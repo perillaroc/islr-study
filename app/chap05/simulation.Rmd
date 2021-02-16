@@ -1,0 +1,100 @@
+---
+title: "习题：模拟数据集"
+output: html_notebook
+---
+
+```{r}
+library(car)
+library(boot)
+```
+
+## 数据
+
+生成模拟数据集
+
+```{r}
+set.seed(1)
+y <- rnorm(100)
+x <- rnorm(100)
+y <- x - 2*x^2 + rnorm(100)
+```
+
+$$
+y = x - 2x^2 + \epsilon
+$$
+
+```{r}
+d <- data.frame(
+  x=x,
+  y=y
+)
+```
+
+
+## 绘图
+
+```{r}
+scatterplot(
+  y ~ x,
+  data=d
+)
+```
+
+y 与 x 呈二次曲线关系
+
+## LOOCV
+
+```{r}
+set.seed(1)
+cv_error_1 <- rep(0, 4)
+for (i in 1:4) {
+  glm_fit <- glm(
+    y ~ poly(x, i),
+    data=d
+  )
+  cv_error_1[i] <- cv.glm(
+    d,
+    glm_fit,
+    K=10
+  )$delta[1]
+}
+cv_error_1
+```
+
+换一个随机数种子
+
+```{r}
+set.seed(10)
+cv_error_10 <- rep(0, 4)
+for (i in 1:4) {
+  glm_fit <- glm(
+    y ~ poly(x, i),
+    data=d
+  )
+  cv_error_10[i] <- cv.glm(
+    d,
+    glm_fit,
+    K=10
+  )$delta[1]
+}
+cv_error_10
+```
+
+
+不同随机数种子得到的 LOOCV 误差不同
+
+二次多项式的误差最小，和生成模拟数据使用的公式保持一致
+
+#### 系数估计
+
+```{r}
+for (i in 1:4) {
+  glm_fit <- glm(
+    y ~ poly(x, i),
+    data=d
+  )
+  print(summary(glm_fit)$coef)
+}
+```
+
+三次和四次项的 P 值均不显著，验证 LOOCV 的结果，即二次多项式拟合效果最佳。

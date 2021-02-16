@@ -1,0 +1,123 @@
+---
+title: "习题：Boston 数据集"
+output: html_notebook
+---
+
+
+```{r}
+library(MASS)
+library(boot)
+```
+
+## 数据
+
+```{r paged.print=FALSE}
+head(Boston)
+```
+
+```{r}
+dim(Boston)
+```
+
+## 均值
+
+总体均值的估计
+
+```{r}
+u <- mean(Boston$medv)
+u
+```
+
+总体均值估计的标准误差的估计
+
+```{r}
+u_std_error <- sd(Boston$medv) / sqrt(nrow(Boston))
+u_std_error
+```
+
+### 自助法
+
+```{r}
+mean_function <- function(data, index) {
+  return (mean(data$medv[index]))
+}
+```
+
+```{r}
+mean_boot <- boot(
+  Boston,
+  mean_function,
+  R=1000
+)
+mean_boot
+```
+
+自助法求得的标准误差为 0.418，与估计的标准误差 0.409 相差不大
+
+### 置信区间
+
+```{r}
+c(u - 2*u_std_error, u + 2*u_std_error)
+```
+
+```{r}
+boot.ci(mean_boot)
+```
+
+两种方法得到的置信区间比较接近
+
+## 中位数
+
+```{r}
+u_med <- median(Boston$medv)
+u_med
+```
+
+使用自助法求总体中位数估计的标准误差
+
+```{r}
+median_function <- function(data, index) {
+  return (median(data$medv[index]))
+}
+median_boot <- boot(
+  Boston,
+  median_function,
+  R=1000
+)
+median_boot
+```
+
+## 分位数
+
+10% 分位数估计
+
+```{r}
+q10 <- quantile(
+  Boston$medv,
+  probs=0.1
+)
+q10
+```
+
+使用自助法估计上述值的标准误差
+
+```{r}
+q10_function <- function(data, index) {
+  return (quantile(Boston$medv[index], probs=0.1))
+}
+q10_boot <- boot(
+  Boston,
+  q10_function,
+  R=1000
+)
+q10_boot
+```
+
+标准误差是 0.5
+
+置信区间：
+
+```{r}
+boot.ci(q10_boot)
+```
+
