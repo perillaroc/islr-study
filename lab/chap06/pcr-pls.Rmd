@@ -1,0 +1,176 @@
+---
+title: "实验：PCR 和 PLS 回归"
+output: html_notebook
+---
+
+
+```{r}
+library(ISLR)
+library(pls)
+```
+
+## 数据
+
+棒球数据集，使用若干与棒球运动员上一年比赛成绩相关的变量来预测该运动员的薪水 (Salary)
+
+```{r paged.print=FALSE}
+head(Hitters)
+```
+
+```{r}
+dim(Hitters)
+```
+
+```{r}
+names(Hitters)
+```
+
+## 处理缺失值
+
+```{r}
+sum(is.na(Hitters))
+```
+
+删掉缺失值条目
+
+```{r}
+hitters <- na.omit(Hitters)
+dim(hitters)
+```
+
+```{r}
+sum(is.na(hitters))
+```
+
+## 主成分回归
+
+pls 库中的 `pcr()` 函数实现主成分回归 (PCR)。参数说明：
+
+- `scale=TRUE`：变量标准化
+- `validation="CV"`：使用十折交叉验证，计算每个主成分个数对应的交叉验证误差
+
+```{r}
+set.seed(1234)
+pcr_fit <- pcr(
+  Salary ~ .,
+  data=hitters,
+  scale=TRUE,
+  validation="CV"
+)
+```
+
+
+```{r}
+summary(pcr_fit)
+```
+
+`summary()` 显示每个主成分个数对应的交叉得分，这里使用均方根误差 (RMSE)
+
+使用 `validationplot()` 函数绘制 MSE 图像
+
+```{r}
+validationplot(
+  pcr_fit,
+  val.type="MSEP"
+)
+```
+
+18 个成分时，RMSE 最小。但从 1 个成分开始，RMSE 相差不大，说明仅需要很少的变量就已经足够了。
+
+`summary()` 也给出预测变量的被解释方差百分比 (percentage of variance explained) 和在不同数目成分下线应变量的被解释方差百分比。
+
+### 交叉验证
+
+```{r}
+set.seed(1)
+pcr_fit <- pcr(
+  Salary ~ .,
+  data=hitters,
+  subset=train,
+  scale=TRUE,
+  validation="CV"
+)
+validationplot(
+  pcr_fit,
+  val.type="MSEP"
+)
+```
+
+M = 5 是，交叉验证误差最小
+
+计算测试集 MSE
+
+```{r}
+pcr_predict <- predict(
+  pcr_fit,
+  x[test,],
+  ncomp=7
+)
+mean((pcr_predict - y_test)^2)
+```
+
+### 拟合
+
+在整个数据集上拟合 PCR 模型
+
+```{r}
+pcr_fit <- pcr(
+  y ~ x,
+  scale=TRUE,
+  ncomp=5
+)
+summary(pcr_fit)
+```
+
+## 偏最小二乘法
+
+`plsr()` 函数
+
+```{r}
+set.seed(1)
+pls_fit <- plsr(
+  Salary ~ .,
+  data=hitters,
+  subset=train,
+  scale=TRUE,
+  validation="CV"
+)
+summary(pls_fit)
+```
+
+M = 2 时，交叉验证误差最小
+
+计算测试集 MSE
+
+```{r}
+pls_predict <- predict(
+  pls_fit,
+  x[test,],
+  ncomp=2
+)
+mean((pls_predict - y_test)^2)
+```
+
+### 拟合
+
+在整个数据集上建立 PLS 模型
+
+```{r}
+pls_fit <- plsr(
+  Salary ~ .,
+  data=hitters,
+  scale=TRUE,
+  ncomp=2
+)
+summary(pls_fit)
+```
+
+对比
+
+| 方法 | 成分数量 | Salary 被解释方差比 |
+|------|----------|-------------------|
+| PCR | 7 | 44.90 |
+| PLS | 2 | 46.40 |
+
+
+PCR 目的是使预测变量可解释的方差最大化，而 PLS 旨在寻找可以同时解释预测变量和响应变量方差的方向。

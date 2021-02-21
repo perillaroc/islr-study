@@ -1,0 +1,491 @@
+---
+title: "ISLR实验：子集选择方法"
+output: html_notebook
+---
+
+介绍筛选预测变量子集的几种方法
+
+```{r}
+library(ISLR)
+library(leaps)
+```
+
+## 数据
+
+棒球数据集，使用若干与棒球运动员上一年比赛成绩相关的变量来预测该运动员的薪水 (Salary)
+
+```{r paged.print=FALSE}
+head(Hitters)
+```
+
+```{r}
+dim(Hitters)
+```
+
+```{r}
+names(Hitters)
+```
+
+### 处理缺失值
+
+```{r}
+sum(is.na(Hitters))
+```
+
+删掉缺失值条目
+
+```{r}
+hitters <- na.omit(Hitters)
+dim(hitters)
+```
+
+```{r}
+sum(is.na(hitters))
+```
+
+## 最优子集选择
+
+best subset selection
+
+对 p 个预测变量的所有可能组合分别使用最小二乘回归进行拟合，在所有可能的模型中选取一个最优模型。
+
+leaps 库的 `regsubset()` 函数。
+默认设置下只输出前 8 个变量的筛选结果
+
+```{r}
+regfit_full <- regsubsets(
+  Salary~., 
+  data=hitters
+)
+summary(regfit_full)
+```
+
+使用 `nvmax` 参数设置预测变量个数。
+拟合全部 19 个变量
+
+```{r}
+regfit_full <- regsubsets(
+  Salary~.,
+  data=hitters,
+  nvmax=19
+)
+regfit_summary <- summary(regfit_full)
+regfit_summary
+```
+
+`summary()` 函数返回模型的 R^2，RSS，调整 R^2，C_p 及 BIC 等。
+
+```{r}
+names(regfit_summary)
+```
+
+**C_p**
+
+在训练集 RSS 基础上增加惩罚项，用于调整训练误差倾向于低估测试误差的这一现象。
+
+**BIC**
+
+贝叶斯信息准则，Bayesian information criterion
+
+通常给包含多个变量的模型施加较重的惩罚
+
+**调整 R^2**
+
+理论上，拥有最大调整 R^2 的模型只包含了正确的变量，而没有冗余变量
+
+R^2
+
+```{r}
+regfit_summary$rsq
+```
+
+R^2 随着模型中包含的变量个数增多而单调增加。
+仅包含单个变量时 R^2 为 32%，包含所有变量时，R^2 增加到 55%
+
+绘图比较
+
+```{r fig.height=8, fig.width=8}
+par(mfrow=c(2, 2))
+
+# 绘制 RSS
+plot(
+  regfit_summary$rss,
+  xlab="Number of Variables",
+  ylab="RSS",
+  type="l"
+)
+
+# 绘制调整 R^2
+plot(
+  regfit_summary$adjr2,
+  xlab="Number of Variables",
+  ylab="Adjuested Rsq",
+  type="l"
+)
+
+# 标记调整 R^2 最大的模型
+adjr2_max <- which.max(regfit_summary$adjr2)
+points(
+  adjr2_max,
+  regfit_summary$adjr2[adjr2_max],
+  col="red",
+  cex=2,
+  pch=20
+)
+
+# 绘制 C_p
+plot(
+  regfit_summary$cp,
+  xlab="Number of Variables",
+  ylab="Cp",
+  type="l"
+)
+cp_min <- which.min(regfit_summary$cp)
+points(
+  cp_min,
+  regfit_summary$cp[cp_min],
+  col="red",
+  cex=2,
+  pch=20
+)
+
+# 绘制 BIC
+plot(
+  regfit_summary$bic,
+  xlab="Number of Variables",
+  ylab="BIC",
+  type="l"
+)
+bic_min <- which.min(regfit_summary$bic)
+points(
+  bic_min,
+  regfit_summary$bic[bic_min],
+  col="red",
+  cex=2,
+  pch=20
+)
+```
+
+`regsubsets()` 函数支持 `plot()`
+
+黑色方块表示选择的最优模型所包含的变量
+
+```{r fig.height=6, fig.width=6}
+plot(
+  regfit_full,
+  scale="r2"
+)
+plot(
+  regfit_full,
+  scale="adjr2"
+)
+plot(
+  regfit_full,
+  scale="Cp"
+)
+plot(
+  regfit_full,
+  scale="bic"
+)
+```
+
+BIC 最小的是六变量模型，包含：
+
+- AtBat
+- Hits
+- Walks
+- CRBI
+- DivisonW
+- PutOuts
+
+提取该模型的参数估计值
+
+```{r}
+coef(regfit_full, 6)
+```
+
+## 向前逐步选择和向后逐步选择
+
+设置 `regsubsets()` 函数中参数 `method`
+
+- `forward`：向前逐步选择
+- `backward`：向后逐步选择
+
+### 向前逐步选择
+
+forward stepwise selection
+
+以一个不包含任何预测变量的零模型为起点，依次往模型中添加变量，直到所有的预测变量都包含在模型中。
+
+```{r}
+regfit_forward <- regsubsets(
+  Salary ~ .,
+  data=hitters,
+  nvmax=19,
+  method="forward"
+)
+summary(regfit_forward)
+```
+
+```{r fig.height=6, fig.width=6}
+plot(
+  regfit_forward,
+  scale="r2"
+)
+plot(
+  regfit_forward,
+  scale="adjr2"
+)
+plot(
+  regfit_forward,
+  scale="Cp"
+)
+plot(
+  regfit_forward,
+  scale="bic"
+)
+```
+
+### 向后逐步选择
+
+backward stepwise selection
+
+以包含 p 个变量的全模型为起点，逐次迭代，每次移除一个对模型拟合结果最不利的变量
+
+```{r}
+regfit_backward <- regsubsets(
+  Salary ~ .,
+  data=hitters,
+  nvmax=19,
+  method="backward"
+)
+summary(regfit_backward)
+```
+
+```{r fig.height=6, fig.width=6}
+plot(
+  regfit_backward,
+  scale="r2"
+)
+plot(
+  regfit_backward,
+  scale="adjr2"
+)
+plot(
+  regfit_backward,
+  scale="Cp"
+)
+plot(
+  regfit_backward,
+  scale="bic"
+)
+```
+
+### 对比
+
+向前逐步选择和向后逐步选择都无法保证找到所有可能模型中的最优模型。
+
+最优七变量模型不同
+
+```{r}
+coef(regfit_full, 7)
+```
+
+```{r}
+coef(regfit_forward, 7)
+```
+
+```{r}
+coef(regfit_backward, 7)
+```
+
+## 使用验证集方法选择模型
+
+### 拆分训练集和验证集
+
+构造与数据集长度相同的 TRUE/FALSE 向量
+
+```{r}
+set.seed(1)
+train <- sample(
+  c(TRUE, FALSE),
+  nrow(hitters),
+  rep=TRUE
+)
+test <- (!train)
+```
+
+### 在训练集上进行最优子集选择
+
+```{r}
+regfit_best <- regsubsets(
+  Salary ~ .,
+  data=hitters[train,],
+  nvmax=19
+)
+```
+
+### 验证集误差
+
+在不同模型大小情况下，计算最优模型的验证集误差
+
+使用测试数据生成回归设计矩阵
+
+设计矩阵 (design matrix, model matrix, regressor matrix) 在统计学和机器学习中，是一组观测结果中的所有解释变量的值构成的矩阵，常用 X 表示。
+通常情况下，设计矩阵的第 i 行代表第 i 次观测的结果，第 j 列代表第 j 种解释变量。
+
+```{r}
+test_mat <- model.matrix(
+  Salary ~ .,
+  data=hitters[test,]
+)
+```
+
+计算测试集的 MSE
+
+每次循环计算参数估计，乘以测试集回归设计矩阵得到预测值，结合实际值计算 MSE
+
+```{r}
+val_errors <- rep(NA, 19)
+for (i in 1:19) {
+  coefi <- coef(regfit_best, id=i)
+  pred <- test_mat[,names(coefi)] %*% coefi
+  val_errors[i] <- mean((hitters$Salary[test] - pred)^2)
+}
+val_errors
+```
+
+### 选择最优模型
+
+```{r}
+which.min(val_errors)
+```
+
+最优模型含有 7 个变量
+
+```{r}
+coef(regfit_best, 7)
+```
+
+### 编写预测函数
+
+为 `regsubsets()` 函数编写 `predict.regsubsets()` 函数，以支持 `predict()` 函数
+
+```{r}
+predict.regsubsets <- function(object, newdata, id, ...) {
+  form <- as.formula(object$call[[2]])
+  mat <- model.matrix(form, newdata)
+  coefi <- coef(object, id=id)
+  xvars <- names(coefi)
+  return (mat[,xvars] %*% coefi)
+}
+```
+
+计算测试集在最优七变量模型上的预测值
+
+```{r}
+result <- predict(regfit_best, hitters[test,], id=7)
+```
+
+### 对比
+
+使用整个数据集进行最优子集选择，选出最优的 7 变量模型
+
+```{r}
+regfit_best <- regsubsets(
+  Salary ~ .,
+  data=hitters,
+  nv=19
+)
+coef(regfit_best, 7)
+```
+
+可以看到，使用全集数据得到的模型包含的变量与使用训练集的到的模型不同。
+
+## 使用交叉验证法选择模型
+
+在 k=10 个训练集中分别使用最优子集选择法
+
+将数据随机分成 10 组
+
+```{r}
+k <- 10
+set.seed(1)
+folds <- sample(
+  1:k,
+  nrow(hitters),
+  replace=TRUE
+)
+```
+
+`cv_errors` 矩阵行表示一次循环，列表示最优变量个数
+
+```{r}
+cv_errors <- matrix(
+  NA, k, 19,
+  dimnames=list(NULL, paste(1:19))
+)
+```
+
+循环计算测试误差
+
+```{r}
+# 计算不同折
+for (j in 1:k) {
+  best_fit <- regsubsets(
+    Salary ~ .,
+    data=hitters[folds!=j,],
+    nvmax=19
+  )
+  # 计算不同变量个数
+  for (i in 1:19) {
+    pred <- predict(
+      best_fit,
+      hitters[folds==j,],
+      id=i
+    )
+    cv_errors[j, i] <- mean(
+      (hitters$Salary[folds==j] - pred)^2
+    )
+  }
+}
+```
+
+计算列平均，得到不同变量个数的模型的交叉验证误差
+
+```{r}
+mean_cv_errors <- apply(cv_errors, 2, mean)
+mean_cv_errors
+```
+
+```{r}
+plot(
+  mean_cv_errors,
+  type="b",
+  xlab="Number of Variables",
+  ylab="Mean CV Errors",
+  main="Mean CV Errors for All Variables"
+)
+mean_cv_min <- which.min(mean_cv_errors)
+points(
+  mean_cv_min,
+  mean_cv_errors[mean_cv_min],
+  col="red",
+  cex=2,
+  pch=20,
+)
+```
+
+交叉验证选择了十变量模型
+
+对整个数据集使用最优子集选择，得到十变量模型的参数估计结果
+
+```{r}
+reg_best <- regsubsets(
+  Salary ~ .,
+  data=hitters,
+  nvmax=19
+)
+coef(reg_best, 10)
+```
+

@@ -1,0 +1,325 @@
+---
+title: "实验：岭回归和 lasso"
+output: html_notebook
+---
+
+
+```{r}
+library(ISLR)
+library(glmnet)
+```
+
+## 数据
+
+棒球数据集，使用若干与棒球运动员上一年比赛成绩相关的变量来预测该运动员的薪水 (Salary)
+
+```{r paged.print=FALSE}
+head(Hitters)
+```
+
+```{r}
+dim(Hitters)
+```
+
+```{r}
+names(Hitters)
+```
+
+## 处理缺失值
+
+```{r}
+sum(is.na(Hitters))
+```
+
+删掉缺失值条目
+
+```{r}
+hitters <- na.omit(Hitters)
+dim(hitters)
+```
+
+```{r}
+sum(is.na(hitters))
+```
+
+构造数据集
+
+```{r}
+x <- model.matrix(Salary ~ ., hitters)[, -1]
+y <- hitters$Salary
+```
+
+## 岭回归
+
+glmnet 包的 `glmnet()` 函数使用参数 `alpha` 选择模型：
+
+- `alpha=0`：岭回归
+- `alpha=1`：lasso
+
+### 拟合岭回归模型
+
+设置参数 lambda 范围
+
+```{r}
+grid <- 10^seq(10, -2, length=100)
+```
+
+拟合模型
+
+注：`glmnet()` 默认对所有变量进行标准化
+
+```{r}
+ridge_model <- glmnet(
+  x, y,
+  alpha=0,
+  lambda=grid
+)
+```
+
+### 系数矩阵
+
+每个 labmda 取值对应一个系数向量
+
+系数矩阵中每行对应一个变量，每列对应一个 lambda 取值
+
+```{r}
+dim(coef(ridge_model))
+```
+
+使用 L2 范数时，一般认为较大 lambda 值对应的系数值远小于较小 lambda 值对应的系数
+
+较大 lambda 值
+
+```{r}
+ridge_model$lambda[50]
+```
+
+```{r}
+coef(ridge_model)[, 50]
+```
+
+较小 lambda 值
+
+```{r}
+ridge_model$lambda[60]
+```
+
+```{r}
+coef(ridge_model)[, 60]
+```
+
+### 预测
+
+获取新 lambda 值对应的岭回归系数
+
+```{r}
+predict(
+  ridge_model,
+  s=50,
+  type="coefficients"
+)[1:20,]
+```
+
+### 测试误差
+
+#### 训练集和测试集
+
+分隔数据集的常用方法：
+
+- 生成 TRUE/FALSE 向量
+- 生成 1..n 数字子集，作为训练集的索引
+
+```{r}
+set.seed(1)
+train <- sample(1:nrow(x), nrow(x)/2)
+test <- (-train)
+y_test <- y[test]
+```
+
+#### 拟合
+
+```{r}
+ridge_model <- glmnet(
+  x[train,],
+  y[train],
+  alpha=0,
+  lambda=grid,
+  thresh=1e-12
+)
+```
+
+计算 lambda = 4 时测试集的 MSE
+
+```{r}
+ridge_predict <- predict(
+  ridge_model,
+  s=4,
+  newx=x[test,]
+)
+mean((ridge_predict - y_test)^2)
+```
+
+计算 lambda = 1e10 时测试集的 MSE
+
+```{r}
+ridge_predict <- predict(
+  ridge_model,
+  s=1e10,
+  newx=x[test,]
+)
+mean((ridge_predict - y_test)^2)
+```
+
+计算最小二乘回归模型的 MSE，即 lambda = 0
+
+```{r}
+ridge_lm <- glmnet(
+  x[train,],
+  y[train],
+  alpha=0,
+  lambda=0,
+  thresh=1e-12
+)
+ridge_predict <- predict(
+  ridge_lm,
+  s=0,
+  newx=x[test,],
+  exact=TRUE
+)
+mean((ridge_predict - y_test)^2)
+```
+
+对比系数
+
+```{r}
+lm(y ~ x, subset=train)
+```
+
+```{r}
+predict(
+  ridge_lm,
+  s=0,
+  exact=TRUE,
+  type="coefficients"
+)[1:20,]
+```
+
+#### 交叉验证
+
+`cv.glmnet()` 
+
+```{r}
+set.seed(1)
+cv_out <- cv.glmnet(
+  x[train,],
+  y[train],
+  alpha=0
+)
+```
+
+```{r}
+plot(cv_out)
+```
+
+交叉验证误差最小的 lambda 值
+
+```{r}
+bestlam <- cv_out$lambda.min
+bestlam
+```
+
+对应的测试 MSE
+
+```{r}
+ridge_predict <- predict(
+  ridge_model,
+  s=bestlam,
+  newx=x[test,]
+)
+mean((ridge_predict - y_test)^2)
+```
+
+在整个数据集上训练
+
+```{r}
+out <- glmnet(
+  x, y,
+  alpha=0
+)
+predict(
+  out,
+  type="coefficients",
+  s=bestlam
+)[1:20,]
+```
+
+没有一个变量的系数为 0，岭回归没有筛选出变量
+
+## lasso
+
+拟合模型，使用 `alpha=1` 拟合 lasso 模型
+
+```{r}
+lasso_model <- glmnet(
+  x[train,],
+  y[train],
+  alpha=1,
+  lambda=grid
+)
+```
+
+```{r}
+plot(lasso_model)
+```
+
+使用交叉验证并计算相应的测试误差
+
+```{r}
+set.seed(1)
+cv_out <- cv.glmnet(
+  x[train,],
+  y[train],
+  alpha=1
+)
+```
+
+```{r}
+plot(cv_out)
+```
+
+```{r}
+bestlam <- cv_out$lambda.min
+bestlam
+```
+
+```{r}
+lasso_predict <- predict(
+  lasso_model,
+  s=bestlam,
+  newx=x[test,]
+)
+mean((lasso_predict - y_test)^2)
+```
+
+使用全部数据重新拟合，打印系数
+
+```{r}
+out <- glmnet(
+  x, y,
+  alpha=1,
+  lambda=grid
+)
+lasso_coef <- predict(
+  out,
+  type="coefficients",
+  s=bestlam,
+)[1:20,]
+lasso_coef
+```
+
+```{r}
+lasso_coef[lasso_coef!=0]
+```
+
+
+lasso 的系数估计是稀疏的，上述模型中有 8 个变量的系数为 0，模型仅包含 11 个变量
