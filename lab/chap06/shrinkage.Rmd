@@ -3,6 +3,9 @@ title: "实验：岭回归和 lasso"
 output: html_notebook
 ---
 
+介绍两种压缩估计方法
+
+使用对系数进行约束或加罚的技巧对包含 p 个预测变量的模型进行拟合，也就是说，将系数估计值往零的方向压缩。
 
 ```{r}
 library(ISLR)
@@ -25,7 +28,7 @@ dim(Hitters)
 names(Hitters)
 ```
 
-## 处理缺失值
+### 处理缺失值
 
 ```{r}
 sum(is.na(Hitters))
@@ -51,12 +54,32 @@ y <- hitters$Salary
 
 ## 岭回归
 
+ridge regression
+
+**最小化函数**
+
+最小二乘回归：
+
+$$
+RSS = \sum_{i=1}^n(y_i - \beta_0 - \sum_{j=1}^p\beta_jx_{ij})^2
+$$
+
+岭回归：
+
+$$
+\sum_{i=1}^n(y_i - \beta_0 - \sum_{j=1}^p\beta_jx_{ij})^2 + \lambda\sum_{j=1}^p\beta_j^2 
+    = RSS + \lambda\sum_{j=1}^p\beta_j^2 
+$$
+
+其中 lambda 是调节参数，增加的项是压缩惩罚，使用 L2 范数
+
+
+### 拟合岭回归模型
+
 glmnet 包的 `glmnet()` 函数使用参数 `alpha` 选择模型：
 
 - `alpha=0`：岭回归
 - `alpha=1`：lasso
-
-### 拟合岭回归模型
 
 设置参数 lambda 范围
 
@@ -80,11 +103,13 @@ ridge_model <- glmnet(
 
 每个 labmda 取值对应一个系数向量
 
-系数矩阵中每行对应一个变量，每列对应一个 lambda 取值
+`coef()` 函数返回的系数矩阵中每行对应一个预测变量，每列对应一个 lambda 取值
 
 ```{r}
 dim(coef(ridge_model))
 ```
+
+**比较系数大小**
 
 使用 L2 范数时，一般认为较大 lambda 值对应的系数值远小于较小 lambda 值对应的系数
 
@@ -124,9 +149,9 @@ predict(
 
 #### 训练集和测试集
 
-分隔数据集的常用方法：
+分割数据集的常用方法：
 
-- 生成 TRUE/FALSE 向量
+- 生成与数据集大小相同的 TRUE/FALSE 向量
 - 生成 1..n 数字子集，作为训练集的索引
 
 ```{r}
@@ -137,6 +162,8 @@ y_test <- y[test]
 ```
 
 #### 拟合
+
+使用训练集拟合
 
 ```{r}
 ridge_model <- glmnet(
@@ -189,11 +216,15 @@ ridge_predict <- predict(
 mean((ridge_predict - y_test)^2)
 ```
 
-对比系数
+**对比系数**
+
+线性回归
 
 ```{r}
 lm(y ~ x, subset=train)
 ```
+
+lambda = 0 时的岭回归
 
 ```{r}
 predict(
@@ -239,7 +270,7 @@ ridge_predict <- predict(
 mean((ridge_predict - y_test)^2)
 ```
 
-在整个数据集上训练
+在整个数据集上训练，得到变量的系数
 
 ```{r}
 out <- glmnet(
@@ -257,7 +288,18 @@ predict(
 
 ## lasso
 
-拟合模型，使用 `alpha=1` 拟合 lasso 模型
+最小化函数
+
+$$
+\sum_{i=1}^n(y_i - \beta_0 - \sum_{j=1}^p\beta_jx_{ij})^2 + \lambda\sum_{j=1}^p|\beta_j| 
+    = RSS + \lambda\sum_{j=1}^p|\beta_j| 
+$$
+
+惩罚项使用 L1 范数
+
+### 拟合模型
+
+使用 `alpha=1` 拟合 lasso 模型
 
 ```{r}
 lasso_model <- glmnet(
@@ -267,6 +309,8 @@ lasso_model <- glmnet(
   lambda=grid
 )
 ```
+
+绘制系数与 lambda 值的关系
 
 ```{r}
 plot(lasso_model)
@@ -287,6 +331,8 @@ cv_out <- cv.glmnet(
 plot(cv_out)
 ```
 
+交叉验证误差最小的 lambda 值
+
 ```{r}
 bestlam <- cv_out$lambda.min
 bestlam
@@ -301,7 +347,7 @@ lasso_predict <- predict(
 mean((lasso_predict - y_test)^2)
 ```
 
-使用全部数据重新拟合，打印系数
+使用全部数据重新拟合，得到变量的系数
 
 ```{r}
 out <- glmnet(
@@ -320,6 +366,5 @@ lasso_coef
 ```{r}
 lasso_coef[lasso_coef!=0]
 ```
-
 
 lasso 的系数估计是稀疏的，上述模型中有 8 个变量的系数为 0，模型仅包含 11 个变量
